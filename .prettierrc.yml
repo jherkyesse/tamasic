@@ -1,0 +1,13 @@
+semi: true
+tabWidth: 2
+trailingComma: all
+singleQuote: true
+overrides:
+    - files: "*.yml"
+      options:
+        parser: yaml
+        semi: false
+    - files: ["*.tsx", "*.ts"]
+      options:
+        parser: typescript
+        arrowParens: always

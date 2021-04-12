@@ -1,0 +1,45 @@
+parser: '@typescript-eslint/parser'
+plugins:
+  - jsx-a11y
+  - prettier
+  - react
+  - react-hooks
+  - import
+  - '@typescript-eslint'
+settings:
+  import/resolver:
+    babel-module:
+extends:
+  - eslint:recommended
+  - plugin:react/recommended
+  - plugin:jsx-a11y/recommended
+  - plugin:import/errors
+  - plugin:import/warnings
+  - prettier
+env:
+  node: true
+  browser: true
+  es6: true
+rules:
+  react-hooks/rules-of-hooks: error
+  react-hooks/exhaustive-deps: error
+  react/no-deprecated: warn
+  import/no-extraneous-dependencies: error
+  import/named: off
+  import/namespace: off
+  import/default: off
+  '@typescript-eslint/indent': off
+  react/jsx-indent: off
+  '@typescript-eslint/no-explicit-any': off
+  '@typescript-eslint/explicit-function-return-type': off
+  '@typescript-eslint/explicit-member-accessibility': off
+  '@typescript-eslint/no-unused-vars':
+    - error
+    - varsIgnorePattern: ^_
+      ignoreRestSiblings: true
+  '@typescript-eslint/camelcase': off
+  curly:
+    - error
+    - all
+  jsx-a11y/mouse-events-have-key-events: warn
+  jsx-a11y/no-autofocus: off
