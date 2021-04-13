@@ -7,7 +7,7 @@
 
 ### Components
 - [ ] Accordion
-- [ ] Badge
+- [x] Badge
 - [ ] Button
 - [ ] ButtonGroup
 - [ ] Checkbox
@@ -15,7 +15,7 @@
 - [x] Container
 - [ ] DatePicker
 - [ ] Dimmer
-- [ ] Divider
+- [x] Divider
 - [ ] Dropdown
 - [ ] Grid
 - [x] Input

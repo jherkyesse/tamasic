@@ -8,6 +8,7 @@ module.exports = {
     '@snowpack/plugin-typescript',
     '@snowpack/plugin-react-refresh',
     '@snowpack/plugin-sass',
+    '@snowpack/plugin-postcss'
   ],
   packageOptions: {
     knownEntrypoints: ['react', 'react-dom'],

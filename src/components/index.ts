@@ -1,5 +1,9 @@
+import Badge from './Badge';
+import Divider from './Divider';
 import Input from './Input';
 
-export default {
+export {
+  Badge,
+  Divider,
   Input,
 };
