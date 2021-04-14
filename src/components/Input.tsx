@@ -3,7 +3,7 @@ import React from 'react';
 type InputProps = {
   type?: string | 'text';
   value?: string;
-  onChange: (value: string) => void;
+  onChange: Function;
 };
 
 function Input({ type, value, onChange }: InputProps) {

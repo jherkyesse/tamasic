@@ -1,0 +1,23 @@
+{
+  "Import React": {
+		"scope": "javascript,typescript,typescriptreact,javascriptreact",
+		"prefix": "ipreact",
+    "body": ["import React from 'react';"],
+    "description": "import React from 'react';"
+  },
+  "Export default Function $1": {
+    "scope": "javascript,typescript,typescriptreact,javascriptreact",
+    "prefix": "fn",
+    "body": [
+      "function $1() {",
+			"  return (",
+			"    $2",
+      "  );",
+      "}",
+      "",
+			"export default $1;",
+			""
+    ],
+    "description": "import React from 'react';"
+  }
+}
