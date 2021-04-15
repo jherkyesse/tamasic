@@ -1,17 +1,25 @@
 import React from 'react';
 
+const defaultClassName =
+  'flex-1 border border-gray-300 shadow focus:outline-none focus:shadow-inner text-xs p-1';
+
 type InputProps = {
-  type?: string | 'text';
+  className?: string;
+  onChange: (value: string) => void;
   value?: string;
-  onChange: Function;
 };
 
-function Input({ type, value, onChange }: InputProps) {
-  const onChangeValue = (e: React.ChangeEvent<HTMLInputElement>): void => {
-    const { value } = e.target;
-    onChange(value);
-  };
-  return <input type={type} value={value} onChange={onChangeValue} />;
+function Input({ className = '', onChange, value, ...props }: InputProps) {
+  const onChangeValue = (e: React.ChangeEvent<HTMLInputElement>): void =>
+    onChange(e.target.value);
+  return (
+    <input
+      className={`${defaultClassName} ${className}`}
+      value={value}
+      onChange={onChangeValue}
+      {...props}
+    />
+  );
 }
 
 export default Input;
