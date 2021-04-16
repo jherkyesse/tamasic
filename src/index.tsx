@@ -1,7 +1,18 @@
 import React, { useState } from 'react';
 import { render } from 'react-dom';
-import { Badge, Button, Divider, Input } from './components';
+import {
+  Badge,
+  Button,
+  Col,
+  Container,
+  Divider,
+  Input,
+  Row,
+  Table,
+  Textarea,
+} from './components';
 import './constants/styles/common.scss';
+import { headerList, headerKeyList, tableData } from './constants/mock.ts';
 
 export interface Props {
   name?: string;
@@ -10,8 +21,34 @@ export interface Props {
 function App({ name }: Props) {
   const [user, setUser] = useState();
   return (
-    <div>
+    <Container>
       <Badge label="Start" />
+      <Divider />
+      <Row>
+        <Col>
+          <Input value={user} onChange={setUser} placeholder="enter user..." />
+          <Input
+            value={user}
+            onChange={setUser}
+            placeholder="enter password..."
+          />
+        </Col>
+        <Col>
+          <Textarea
+            rows={3}
+            value={user}
+            onChange={setUser}
+            placeholder="enter user..."
+          />
+        </Col>
+        <Col>
+          <Button.Group>
+            <Button elevated label="Option1" />
+            <Button elevated label="Option2" />
+            <Button elevated disabled label="Option3" />
+          </Button.Group>
+        </Col>
+      </Row>
       <Divider />
       <Button label="Submit" color="pink" />
       <Button label="Delete" color="red" />
@@ -30,8 +67,13 @@ function App({ name }: Props) {
         <Button label="Option2" color="red" />
         <Button disabled label="Option3" color="red" />
       </Button.Group>
-      <Input value={user} onChange={setUser} />
-    </div>
+      <Divider />
+      <Table
+        headerList={headerList}
+        headerKeyList={headerKeyList}
+        data={tableData}
+      />
+    </Container>
   );
 }
 

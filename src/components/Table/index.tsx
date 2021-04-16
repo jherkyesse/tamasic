@@ -39,11 +39,22 @@ function Table({
   onChange,
 }: TableProps) {
   const rowCount = data.length;
-  const columnCount = headerList.length;
-  const stickyMap = headerList.flat().reduce((acc, { key, sticky }) => {
-    if (sticky) acc[key] = sticky;
-    return acc;
-  }, {});
+  const columnCount = headerKeyList.length;
+  const stickyColumnPropsMap = headerList
+    .flat()
+    .reduce((acc, { key, sticky, width }, index) => {
+      if (sticky)
+        acc[key] = {
+          sticky,
+          width,
+          left:
+            index === 0
+              ? 0
+              : (acc[Object.keys(acc)[index - 1]]?.left || 0) +
+                acc[Object.keys(acc)[index - 1]]?.width,
+        };
+      return acc;
+    }, {});
 
   const [state, setState] = useState({
     isEdited: false,
@@ -69,41 +80,62 @@ function Table({
 
   function keyUp() {
     if (!fromX || fromY === 0) return;
-    const newY = fromY! - 1;
-    setState({ ...state, fromY: newY, toX: undefined, toY: newY });
+    const toY = fromY! - 1;
+    setState({ ...state, fromY: toY, toX: fromX, toY });
   }
   function keyDown() {
     if (!fromX || fromY === rowCount - 1) return;
-    const newY = fromY! + 1;
-    setState({ ...state, fromY: newY, toX: undefined, toY: newY });
+    const toY = fromY! + 1;
+    setState({ ...state, fromY: toY, toX: fromX, toY });
   }
   function keyLeft() {
     if (!fromX || fromX === 0) return;
-    const newX = fromX - 1;
+    const toX = fromX - 1;
     // if (newX < contentEditableActiveLeftCellX) return;
-    setState({ ...state, fromX: newX, toX: newX, toY: undefined });
+    setState({ ...state, fromX: toX, toX, toY: fromY });
   }
   function keyRight() {
     if (!fromX || fromX === columnCount - 1) return;
-    const newX = fromX + 1;
-    setState({ ...state, fromX: newX, toX: newX, toY: undefined });
+    const toX = fromX + 1;
+    setState({ ...state, fromX: toX, toX, toY: fromY });
   }
   function selectKeyUp() {
     if (toY === 0) return;
-    setState({ ...state, toY: toY! - 1, isSelected: false });
+    setState({
+      ...state,
+      toY: (toY ?? fromY) - 1,
+      toX: toX ?? fromX,
+      isSelected: false,
+    });
   }
   function selectKeyDown() {
-    if (toY === rowCount) return;
-    setState({ ...state, toY: toY! + 1, isSelected: false });
+    if (toY === rowCount - 1) return;
+    setState({
+      ...state,
+      toY: (toY ?? fromY) + 1,
+      toX: toX ?? fromX,
+      isSelected: false,
+    });
   }
   function selectKeyLeft() {
-    // if (toX === 0 || toX === contentEditableActiveLeftCellX)
+    if (toX === 0) return;
+    // if (toX === 0 ?? toX === contentEditableActiveLeftCellX)
     //   return;
-    setState({ ...state, toX: toX! - 1, isSelected: false });
+    setState({
+      ...state,
+      toX: (toX ?? fromX) - 1,
+      toY: toY ?? fromY,
+      isSelected: false,
+    });
   }
   function selectKeyRight() {
-    if (toX === columnCount) return;
-    setState({ ...state, toX: toX! + 1, isSelected: false });
+    if (toX === columnCount - 1) return;
+    setState({
+      ...state,
+      toX: (toX ?? fromX) + 1,
+      toY: toY ?? fromY,
+      isSelected: false,
+    });
   }
 
   const move = {
@@ -175,7 +207,6 @@ function Table({
           };
         }
       }
-      console.log(nextData);
 
       onChange(nextData);
       return;
@@ -245,14 +276,18 @@ function Table({
               <tr key={y} className={tableTbodyTrClassName}>
                 {headerKeyList.map((key, x) => {
                   const value = item[key];
-                  const sticky = stickyMap[key];
+                  const { sticky, width, left } =
+                    stickyColumnPropsMap[key] || {};
 
                   const onMouseDown = () =>
                     setState({
                       ...state,
                       fromX: x,
                       fromY: y,
+                      toX: x,
+                      toY: y,
                       isEdited: isEdited && (fromX !== x || toY !== y),
+                      isSelected: true,
                     });
                   const onMouseUp = () => {
                     if (!isSelected) return;
@@ -272,7 +307,7 @@ function Table({
                   };
 
                   const isEdit = `${x}-${y}` === `${fromX}-${fromY}`;
-                  const isSelected =
+                  const isIncludeSelected =
                     x >= Math.min(fromX!, toX!) &&
                     x <= Math.max(fromX!, toX!) &&
                     y >= Math.min(fromY!, toY!) &&
@@ -283,10 +318,11 @@ function Table({
                       data-index={`${x}-${y}`}
                       role="presentation"
                       className={` ${tableTbodyTdClassName} ${
-                        isSelected ? 'bg-gray-300' : ''
-                      } ${sticky ? 'sticky' : ''} ${
+                        isIncludeSelected ? 'bg-gray-300' : ''
+                      } ${sticky ? 'sticky bg-white z-10' : ''} ${
                         fromX === x && fromY === y ? 'active' : ''
                       }`}
+                      style={{ left, width }}
                       onMouseDown={onMouseDown}
                       onMouseUp={onMouseUp}
                       onMouseEnter={onMouseEnter}
@@ -302,7 +338,16 @@ function Table({
             {headerList.map((header, index) => (
               <tr className={tableTheadTrClassName} key={index}>
                 {header.map(
-                  ({ label, sticky, background, color, col = 1, row = 1 }) => (
+                  ({
+                    label,
+                    key,
+                    sticky,
+                    background,
+                    width,
+                    color,
+                    col = 1,
+                    row = 1,
+                  }) => (
                     <th
                       key={label}
                       colSpan={col}
@@ -310,7 +355,15 @@ function Table({
                       className={`${tableTheadThClassName} ${
                         sticky ? stickyClassName : ''
                       }`}
-                      style={{ background, color, top: cellHeight * index }}
+                      style={{
+                        background,
+                        color,
+                        width,
+                        minWidth: width,
+                        maxWidth: width,
+                        top: cellHeight * index,
+                        left: stickyColumnPropsMap[key]?.left,
+                      }}
                     >
                       <div className="whitespace-nowrap">{label}</div>
                     </th>

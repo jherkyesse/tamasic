@@ -1,5 +1,5 @@
 export const tableClassName =
-  'user-select-none table-layout-fixed border-0 outline-none border-spacing-0 border-collapse-separate cursor-cell';
+  'select-none table-fixed border-0 outline-none border-spacing-0 border-separate cursor-cell';
 export const tableTheadClassName =
   'border-b-1 border-gray-300';
 export const tableTheadTrClassName = 'last:border-r-0';

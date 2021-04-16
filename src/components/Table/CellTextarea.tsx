@@ -2,7 +2,7 @@ import React, { useState, useContext, useEffect, useRef } from 'react';
 import {TableContext} from './TableContext';
 
 const defaultClassName =
-  'border border-red-900 absolute top-0 left-0 min-w-full min-h-full resize-none bg-white outline-none px-5px py-3px leading-5 mt--1px -mt-1px -ml-1px -mx-1px';
+  'border border-red-900 absolute top-0 left-0 min-w-full min-h-full resize-none bg-white outline-none px-5px py-3px leading-5 -mt-1px ';
 
 type CellTextareaProps = {
   value?: string;
