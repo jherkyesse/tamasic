@@ -9,13 +9,33 @@ const directionMap = {
 
 type DividerProps = {
   className?: string;
-  color?: 'red' | 'orange' | 'yellow' | 'green' | 'blue' | 'purple' | 'pink' | 'black' | 'white' | 'gray';
+  color?:
+    | 'red'
+    | 'orange'
+    | 'yellow'
+    | 'green'
+    | 'blue'
+    | 'purple'
+    | 'pink'
+    | 'black'
+    | 'white'
+    | 'gray';
   direction?: 'vertical' | 'horizontal';
+  type?: 'solid' | 'dashed' | 'dotted' | 'double';
 };
 
-function Divider({ className = '', direction = 'vertical', color = 'gray' }: DividerProps) {
+function Divider({
+  className = '',
+  direction = 'vertical',
+  color = 'gray',
+  type = 'solid',
+}: DividerProps) {
   const directionClassName = directionMap[direction];
-  return <div className={`${defaultClassName} divide-${directionClassName} border-${color}-300 ${className}`} />;
+  return (
+    <div
+      className={`${defaultClassName} divide-${directionClassName} divide-${type} border-${color}-300 ${className}`}
+    />
+  );
 }
 
 export default Divider;

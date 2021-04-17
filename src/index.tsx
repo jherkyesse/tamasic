@@ -20,6 +20,9 @@ export interface Props {
 
 function App({ name }: Props) {
   const [user, setUser] = useState();
+  const [tData, setTData] = useState(
+    tableData.map((data, order) => ({ ...data, order: order + 1 })),
+  );
   return (
     <Container>
       <Badge label="Start" />
@@ -71,7 +74,8 @@ function App({ name }: Props) {
       <Table
         headerList={headerList}
         headerKeyList={headerKeyList}
-        data={tableData}
+        data={tData}
+        onChange={setTData}
       />
     </Container>
   );

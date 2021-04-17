@@ -1,4 +1,8 @@
 const colors = require('tailwindcss/colors');
+const plugin = require('tailwindcss/plugin');
+const { omit, flatMap } = require('lodash');
+const flattenColorPalette = require('tailwindcss/lib/util/flattenColorPalette')
+  .default;
 
 module.exports = {
   theme: {
@@ -42,13 +46,24 @@ module.exports = {
         '-20px': '-20px',
         '-25px': '-25px',
         '-30px': '-30px',
-      }
+      },
+      zIndex: {
+        33: 33,
+        35: 35,
+        60: 60,
+        70: 70,
+        80: 80,
+        90: 90,
+        100: 100,
+      },
     },
   },
   variants: {
     extend: {
       backgroundColor: ['active'],
       borderRadius: ['first', 'last', 'not', 'child'],
+      borderWidth: ['child', 'not-first', 'not-last'],
+      padding: ['child', 'first'],
     },
   },
   plugins: [
@@ -73,6 +88,41 @@ module.exports = {
           return `.${e(`not${separator}${className}`)} > :not(*)`;
         });
       });
+      addVariant('not-first', ({ modifySelectors, separator }) => {
+        modifySelectors(({ className }) => {
+          return `.${e(
+            `not-first${separator}${className}`,
+          )} > :not(:first-child)`;
+        });
+      });
+      addVariant('not-last', ({ modifySelectors, separator }) => {
+        modifySelectors(({ className }) => {
+          return `.${e(
+            `not-last${separator}${className}`,
+          )} > :not(:last-child)`;
+        });
+      });
     },
+    plugin(function ({ addUtilities, e, theme, variants }) {
+      const colors = flattenColorPalette(theme('borderColor'));
+      const utilities = flatMap(omit(colors, 'default'), (value, modifier) => ({
+        [`.${e(`border-t-${modifier}`)}`]: { borderTopColor: `${value}` },
+        [`.${e(`border-r-${modifier}`)}`]: { borderRightColor: `${value}` },
+        [`.${e(`border-b-${modifier}`)}`]: { borderBottomColor: `${value}` },
+        [`.${e(`border-l-${modifier}`)}`]: { borderLeftColor: `${value}` },
+      }));
+      addUtilities(utilities, variants('borderColor'));
+    }),
+    plugin(function ({ addUtilities }) {
+      const utilities = {
+        '.width-calc-full-2px': {
+          width: 'calc(100% + 2px)',
+        },
+        '.height-calc-full-2px': {
+          height: 'calc(100% + 2px)',
+        },
+      };
+      addUtilities(utilities);
+    }),
   ],
 };
