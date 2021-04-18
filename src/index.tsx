@@ -6,13 +6,22 @@ import {
   Col,
   Container,
   Divider,
+  Grid,
   Input,
   Row,
   Table,
   Textarea,
 } from './components';
 import './constants/styles/common.scss';
-import { headerList, headerKeyList, tableData } from './constants/mock.ts';
+import {
+  headerList,
+  headerKeyList,
+  stickyHeaderList,
+  stickyHeaderKeyList,
+  gridHeaderList,
+  gridHeaderKeyList,
+  tableData,
+} from './constants/mock.ts';
 
 export interface Props {
   name?: string;
@@ -71,11 +80,19 @@ function App({ name }: Props) {
         <Button disabled label="Option3" color="red" />
       </Button.Group>
       <Divider />
-      <Table
+      {/* <Table
         headerList={headerList}
         headerKeyList={headerKeyList}
         data={tData}
         onChange={setTData}
+      /> */}
+      <Grid
+        data={tData}
+        onChange={null}
+        stickyHeaderList={stickyHeaderList}
+        stickyHeaderKeyList={stickyHeaderKeyList}
+        headerList={gridHeaderList}
+        headerKeyList={gridHeaderKeyList}
       />
     </Container>
   );
