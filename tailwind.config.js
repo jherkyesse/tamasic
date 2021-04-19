@@ -1,5 +1,6 @@
 const colors = require('tailwindcss/colors');
 const plugin = require('tailwindcss/plugin');
+const pluginImportant = require('tailwindcss-important');
 const { omit, flatMap } = require('lodash');
 const flattenColorPalette = require('tailwindcss/lib/util/flattenColorPalette')
   .default;
@@ -64,6 +65,7 @@ module.exports = {
       borderRadius: ['first', 'last', 'not', 'child'],
       borderWidth: ['child', 'not-first', 'not-last'],
       padding: ['child', 'first'],
+      overflow: ['important']
     },
   },
   plugins: [
@@ -124,5 +126,6 @@ module.exports = {
       };
       addUtilities(utilities);
     }),
+    pluginImportant(),
   ],
 };

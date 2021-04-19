@@ -21,7 +21,7 @@ import {
   gridHeaderList,
   gridHeaderKeyList,
   tableData,
-} from './constants/mock.ts';
+} from './constants/mock';
 
 export interface Props {
   name?: string;
@@ -88,7 +88,7 @@ function App({ name }: Props) {
       /> */}
       <Grid
         data={tData}
-        onChange={null}
+        onChange={setTData}
         stickyHeaderList={stickyHeaderList}
         stickyHeaderKeyList={stickyHeaderKeyList}
         headerList={gridHeaderList}

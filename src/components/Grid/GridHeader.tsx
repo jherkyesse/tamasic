@@ -1,7 +1,12 @@
 import React, { useContext } from 'react';
 import { Grid, CellMeasurer } from 'react-virtualized';
 import GridContext from './GridContext';
-import { cache } from './config';
+import { cellHeight } from './config';
+
+const defaultGridHeaderClassName =
+  'border-b border-gray-300 outline-none !overflow-x-hidden';
+const defaultHeaderClassName =
+  'flex items-center justify-center border-r border-gray-300 text-xs';
 
 type GridHeaderProps = {
   width: number;
@@ -9,14 +14,16 @@ type GridHeaderProps = {
 };
 
 function GridHeader({ width, scrollLeft }: GridHeaderProps) {
-  const { columnCount, headerList, headerRowCount, height } = useContext(
-    GridContext,
-  );
-  const getColumnWidth = ({ index }) =>
-    headerList[headerList.length - 1].map(({ width = 100 }) => width)[index];
-  const renderHeaderCell = ({ columnIndex, rowIndex, key, style, parent }) => {
+  const {
+    columnCount,
+    getColumnWidth,
+    getHeaderRowWidth,
+    headerList,
+    headerRowCount,
+  } = useContext(GridContext);
+  const headerHeight = headerRowCount * cellHeight;
+  const cellRenderer = ({ columnIndex, rowIndex, key, style, parent }) => {
     const header = headerList[rowIndex][columnIndex] || {};
-    console.log('header', header);
     if (!Object.keys(header).length) return null;
     const { label, background, color, width = 100, left } = header;
     function onChange({ target: { value } }) {
@@ -26,39 +33,33 @@ function GridHeader({ width, scrollLeft }: GridHeaderProps) {
       // setFilterList(newData);
     }
     return (
-      <CellMeasurer
+      <div
         key={key}
-        cache={cache}
-        columnIndex={columnIndex}
-        parent={parent}
-        rowIndex={rowIndex}
+        style={{
+          ...style,
+          background,
+          color,
+          width: width || style.width,
+          left: left || style.left,
+        }}
+        role="presentation"
+        className={defaultHeaderClassName}
       >
-        <div
-          style={{
-            ...style,
-            background,
-            color,
-            width: width || style.width,
-            left: left || style.left,
-          }}
-          role="presentation"
-        >
-          <div>{label}</div>
-          {/* {filterable && (
+        <div>{label}</div>
+        {/* {filterable && (
             <input value={filterList[columnIndex]} onChange={onChange} />
           )} */}
-        </div>
-      </CellMeasurer>
+      </div>
     );
   };
   return (
     <Grid
-      cellRenderer={renderHeaderCell}
+      className={defaultGridHeaderClassName}
+      cellRenderer={cellRenderer}
       width={width}
-      height={height}
-      rowHeight={cache.rowHeight}
+      height={headerHeight}
+      rowHeight={getHeaderRowWidth}
       columnWidth={getColumnWidth}
-      deferredMeasurementCache={cache}
       rowCount={headerRowCount}
       columnCount={columnCount}
       scrollLeft={scrollLeft}

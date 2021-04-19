@@ -5,6 +5,7 @@ import StickyGridHeader from './StickyGridHeader';
 import StickyGridBody from './StickyGridBody';
 import GridHeader from './GridHeader';
 import GridBody from './GridBody';
+import { cache, cellHeight } from './config';
 
 const defaultGridClassName =
   'w-full flex flex-nowrap border border-gray-300 overflow-hidden';
@@ -44,16 +45,20 @@ function Grid({
 
   const getColumnWidth = ({ index }) =>
     columnPropsList.map(({ width = 100 }) => width)[index];
+  const getHeaderRowWidth = ({ index }) =>
+    headerList.map((_) => cellHeight)[index];
   const getStickyColumnWidth = ({ index }) =>
     stickyColumnPropsList.map(({ width = 100 }) => width)[index];
 
   return (
     <GridProvider
       value={{
+        cache,
         columnCount,
         columnPropsList,
         data,
         getColumnWidth,
+        getHeaderRowWidth,
         getStickyColumnWidth,
         headerList,
         headerKeyList,

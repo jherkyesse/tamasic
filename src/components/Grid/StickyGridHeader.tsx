@@ -24,8 +24,10 @@ function StickyGridHeader() {
 
   const height = stickyHeaderRowCount * cellHeight;
   const cellRenderer = ({ columnIndex, rowIndex, key, style, parent }) => {
+    console.log('stickyHeaderList', stickyHeaderList)
     const header =
       stickyHeaderList[rowIndex][columnIndex] || {};
+      console.log('header', header)
     const {
       label,
       background,

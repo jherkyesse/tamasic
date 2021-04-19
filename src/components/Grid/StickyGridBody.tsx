@@ -1,11 +1,10 @@
  
 
-import React, { useContext } from 'react';
+import React, { useContext, useEffect } from 'react';
 import { Grid, CellMeasurer } from 'react-virtualized';
 import GridContext from './GridContext';
-import { cache } from './config';
 
-const defaultStickyGridClassName = 'outline-none';
+const defaultStickyGridBodyClassName = 'outline-none';
 const defaultBodyClassName = 'border-r border-b border-gray-300 text-xs p-1';
 
 type StickyGridBodyProps = {
@@ -14,6 +13,7 @@ type StickyGridBodyProps = {
 
 function StickyGridBody({ scrollTop }: StickyGridBodyProps) {
   const {
+    cache,
     stickyColumnCount,
     stickyColumnPropsList,
     data,
@@ -23,10 +23,12 @@ function StickyGridBody({ scrollTop }: StickyGridBodyProps) {
     rowCount,
     stickyWidth,
   } = useContext(GridContext);
+  useEffect(() => {
+    cache?.clearAll();
+  }, [])
   const cellRenderer = ({ key, parent, columnIndex, rowIndex, style }) => {
     const label = data[rowIndex][stickyHeaderKeyList[columnIndex]];
-    const header = stickyColumnPropsList[columnIndex] || {};
-    const { width = 100 } = header;
+    const { width = 100 } = stickyColumnPropsList[columnIndex] || {};
     
     return (
       <CellMeasurer
@@ -55,11 +57,11 @@ function StickyGridBody({ scrollTop }: StickyGridBodyProps) {
   return (
     <>
       <Grid
-        className={defaultStickyGridClassName}
+        className={defaultStickyGridBodyClassName}
         cellRenderer={cellRenderer}
         width={stickyWidth}
         height={height}
-        rowHeight={cache.rowHeight}
+        rowHeight={cache?.rowHeight}
         columnWidth={getStickyColumnWidth}
         deferredMeasurementCache={cache}
         rowCount={rowCount || 1}
