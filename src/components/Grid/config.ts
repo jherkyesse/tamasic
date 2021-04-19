@@ -23,6 +23,8 @@ export const contextMenuIconSize = 24;
 export const columnWidth = 100;
 export const cache = new CellMeasurerCache({
   defaultWidth: columnWidth,
+  defaultHeight: cellHeight,
   minWidth: 60,
-  fixedHeight: true,
+  fixedWidth: true,
+  fixedHeight: false,
 });
