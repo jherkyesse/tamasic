@@ -7,10 +7,13 @@ module.exports = {
   plugins: [
     '@snowpack/plugin-typescript',
     '@snowpack/plugin-react-refresh',
+    '@snowpack/plugin-postcss',
     '@snowpack/plugin-sass',
-    '@snowpack/plugin-postcss'
   ],
   packageOptions: {
     knownEntrypoints: ['react', 'react-dom'],
+  },
+  alias: {
+    tailwindcss: './node_modules/tailwindcss',
   },
 };

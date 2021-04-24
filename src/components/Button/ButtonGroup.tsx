@@ -1,7 +1,7 @@
 import React from 'react';
 
 const defaultClassName =
-  'inline-flex flex-nowrap child:rounded-none not-last:border-r-0 first:rounded-r-none last:rounded-l-none first:rounded-l-md last:rounded-r-md rounded-md';
+  'inline-flex flex-nowrap child:rounded-none not-last:border-r-0 first:rounded-r-none last:rounded-l-none first:rounded-l-sm last:rounded-r-sm rounded-sm';
 
 const directionClassNameMap = {
   horizontal: 'row',

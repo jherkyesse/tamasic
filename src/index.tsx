@@ -6,8 +6,10 @@ import {
   Col,
   Container,
   Divider,
+  Dropdown,
   Grid,
   Input,
+  Padding,
   Row,
   Table,
   Textarea,
@@ -22,6 +24,7 @@ import {
   gridHeaderKeyList,
   tableData,
 } from './constants/mock';
+import { dropdownOptions } from './constants/dropdown.mock';
 
 export interface Props {
   name?: string;
@@ -29,6 +32,7 @@ export interface Props {
 
 function App({ name }: Props) {
   const [user, setUser] = useState();
+  const [option, setOption] = useState();
   const [tData, setTData] = useState(
     tableData.map((data, order) => ({ ...data, order: order + 1 })),
   );
@@ -59,26 +63,36 @@ function App({ name }: Props) {
             <Button elevated label="Option2" />
             <Button elevated disabled label="Option3" />
           </Button.Group>
+          <Dropdown
+            options={dropdownOptions}
+            value={option}
+            onChange={setOption}
+            placeholder="Select a vtuber..."
+          />
         </Col>
       </Row>
       <Divider />
-      <Button label="Submit" color="pink" />
-      <Button label="Delete" color="red" />
-      <Button label="Info" color="blue" />
-      <Button label="Confirm" color="green" />
-      <Button label="Warning" color="orange" />
-      <Button outline label="Cancel" color="red" />
-      <Button disabled label="Query" color="blue" />
-      <Button disabled label="Export" color="green" />
-      <Button disabled label="Open" color="yellow" />
-      <Button disabled outline label="Create pipeline" color="red" />
-      <Button elevated label="Learn more" />
-      <Button elevated outline label="Learn more" />
-      <Button.Group>
-        <Button label="Option1" color="red" />
-        <Button label="Option2" color="red" />
-        <Button disabled label="Option3" color="red" />
-      </Button.Group>
+      <Padding>
+        <>
+          <Button label="Submit" color="pink" />
+          <Button label="Delete" color="red" />
+          <Button label="Info" color="blue" />
+          <Button label="Confirm" color="green" />
+          <Button label="Warning" color="orange" />
+          <Button outline label="Cancel" color="red" />
+          <Button disabled label="Query" color="blue" />
+          <Button disabled label="Export" color="green" />
+          <Button disabled label="Open" color="yellow" />
+          <Button disabled outline label="Create pipeline" color="red" />
+          <Button elevated label="Learn more" />
+          <Button elevated outline label="Learn more" />
+          <Button.Group>
+            <Button label="Option1" color="red" />
+            <Button label="Option2" color="red" />
+            <Button disabled label="Option3" color="red" />
+          </Button.Group>
+        </>
+      </Padding>
       <Divider />
       {/* <Table
         headerList={headerList}
@@ -93,6 +107,24 @@ function App({ name }: Props) {
         stickyHeaderKeyList={stickyHeaderKeyList}
         headerList={gridHeaderList}
         headerKeyList={gridHeaderKeyList}
+      />
+      <Badge label="moe moe q" />
+      <Divider />
+      <Badge label="moe moe q" />
+      <Divider />
+      <Badge label="moe moe q" />
+      <Divider />
+      <Padding>
+        <Badge label="Ahoy! Ahoy! Ahoy! hoy! hoy! hoy!" />
+      </Padding>
+      <Divider />
+      <Badge label="moe moe q" />
+      <Badge label="moe moe q" />
+      <Dropdown
+        options={dropdownOptions}
+        value={option}
+        onChange={setOption}
+        placeholder="Select a vtuber..."
       />
     </Container>
   );

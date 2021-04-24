@@ -1,4 +1,4 @@
-import React, { useContext } from 'react';
+import React, { useContext, useState } from 'react';
 import { Grid, CellMeasurer } from 'react-virtualized';
 import GridContext from './GridContext';
 import { cellHeight } from './config';
@@ -14,13 +14,15 @@ type GridBodyProps = {
 };
 
 function GridBody({ width, onScroll, scrollLeft, scrollTop }: GridBodyProps) {
+  const [state, setState] = useState({});
+  const { isEdited, fromX, fromY, toX, toY, isSelected } = state;
   const {
     cache,
     columnCount,
-    columnPropsList,
-    data,
+    columnPropsList = [],
+    data = [],
     getColumnWidth,
-    headerKeyList,
+    headerKeyList = [],
     height,
     rowCount,
   } = useContext(GridContext);
@@ -33,6 +35,43 @@ function GridBody({ width, onScroll, scrollLeft, scrollTop }: GridBodyProps) {
       // newData[columnIndex] = value;
       // setFilterList(newData);
     }
+    const onMouseDown = () => {
+      if (isEdited) return;
+      setState({
+        ...state,
+        fromX: columnIndex,
+        fromY: rowIndex,
+        toX: columnIndex,
+        toY: rowIndex,
+        isSelected: true,
+        isEdited: false,
+      });
+    };
+    const onMouseUp = () => {
+      if (isEdited) return;
+      setState({
+        ...state,
+        isSelected: false,
+        isEdited: false,
+      });
+    };
+    const onDoubleClick = () => {
+      if (isEdited) return;
+      setState({
+        ...state,
+        fromX: columnIndex,
+        fromY: rowIndex,
+        toX: columnIndex,
+        toY: rowIndex,
+        isSelected: false,
+        isEdited: true,
+      });
+    };
+    const onEditorChange = (e) => {
+      const { value } = e.target;
+      const nextData = [...data];
+      nextData
+    };
     return (
       <CellMeasurer
         key={key}
@@ -45,8 +84,12 @@ function GridBody({ width, onScroll, scrollLeft, scrollTop }: GridBodyProps) {
           className={defaultBodyClassName}
           style={{ ...style, width: width || style.width }}
           role="presentation"
+          onMouseDown={onMouseDown}
+          onMouseUp={onMouseUp}
+          onDoubleClick={onDoubleClick}
         >
           <div className="w-full break-words">{label}</div>
+          {/* {<textarea onChange={onEditorChange}>{value}</textarea>} */}
           {/* {filterable && (
             <input value={filterList[columnIndex]} onChange={onChange} />
           )} */}

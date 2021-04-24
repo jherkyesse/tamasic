@@ -1,7 +1,7 @@
 import React from 'react';
 import ButtonGroup from './ButtonGroup';
 
-const defaultClassName = 'border rounded-md px-2 py-1 focus:outline-none text-sm';
+const defaultClassName = 'border shadow rounded-sm px-2 py-1 focus:outline-none text-sm';
 
 type ButtonProps = {
   children?: React.ReactNode;
@@ -34,7 +34,7 @@ function Button({
   const disabledClassName = disabled
     ? 'cursor-default opacity-50'
     : 'hover:opacity-80';
-  const elevatedClassName = elevated ? `bg-${color} hover:bg-gray-100 shadow` : '';
+  const elevatedClassName = elevated ? `bg-${color} hover:bg-gray-100` : '';
   const onClickHandler = () => onClick && onClick();
   return (
     <button

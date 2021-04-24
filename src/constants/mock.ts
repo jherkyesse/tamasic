@@ -418,7 +418,8 @@ export const gridHeaderList = [
     {
       label: 'Option14',
       key: 'option14',
-    },    {
+    },
+    {
       label: 'Action',
       key: 'action',
       left: 1600,

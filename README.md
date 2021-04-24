@@ -44,3 +44,8 @@
 ### Roadmap
 - Web Component
 - Support hooks
+
+### Build
+```
+(npx) tailwind build src/**/*.scss -o dist/output.css
+```
