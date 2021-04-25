@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { render } from 'react-dom';
+import { useLocalStorage } from 'react-use';
 import {
   Badge,
   Button,
@@ -31,14 +32,27 @@ export interface Props {
 }
 
 function App({ name }: Props) {
+  const [theme, setTheme] = useLocalStorage('theme', 'light', {
+    raw: true,
+  });
   const [user, setUser] = useState();
   const [option, setOption] = useState();
   const [tData, setTData] = useState(
     tableData.map((data, order) => ({ ...data, order: order + 1 })),
   );
+  const toggleTheme = () => setTheme(theme === 'dark' ? 'light' : 'dark');
+  useEffect(() => {
+    if (theme === 'dark') document.documentElement.classList.add('dark');
+    else document.documentElement.classList.remove('dark');
+  }, [theme]);
   return (
     <Container>
-      <Badge label="Start" />
+      <Row>
+        <Col>
+          <Badge label="Start" />
+          <Button onClick={toggleTheme} label={theme} />
+        </Col>
+      </Row>
       <Divider />
       <Row>
         <Col>

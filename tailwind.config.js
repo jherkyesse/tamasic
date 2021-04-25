@@ -7,6 +7,7 @@ const flattenColorPalette = require('tailwindcss/lib/util/flattenColorPalette')
 
 module.exports = {
   purge: ['./public/**/*.html', './src/**/*.{js,jsx,ts,tsx}'],
+  darkMode: 'class',
   theme: {
     colors: {
       ...colors,
@@ -63,13 +64,13 @@ module.exports = {
   },
   variants: {
     extend: {
-      backgroundColor: ['active', 'disabled'],
+      backgroundColor: ['active', 'disabled', 'important'],
       borderRadius: ['first', 'last', 'not', 'child'],
       borderWidth: ['child', 'not-first', 'not-last'],
       padding: ['child', 'first'],
       margin: ['child', 'first', 'not-first', 'last'],
       overflow: ['important'],
-      opacity: ['disabled'],
+      opacity: ['disabled', 'dark'],
       cursor: ['disabled'],
       pointerEvents: ['disabled'],
     },

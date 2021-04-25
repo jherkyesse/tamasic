@@ -1,7 +1,7 @@
 import React from 'react';
 
 const defaultClassName =
-  'w-full border border-gray-300 shadow focus:outline-none focus:shadow-inner text-xs resize-none p-1';
+  'w-full bg-white dark:bg-black text-black dark:text-white border border-gray-300 shadow focus:outline-none focus:shadow-inner text-xs resize-none p-1';
 
 type TextareaProps = {
   className?: string;

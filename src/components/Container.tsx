@@ -7,7 +7,7 @@ type ContainerProps = {
 
 function Container({ className = '', children, ...props }: ContainerProps) {
   return (
-    <div className={`w-full p-1 ${className}`} {...props}>
+    <div className={`w-full bg-white dark:bg-gray-900 p-1 ${className}`} {...props}>
       {children}
     </div>
   );

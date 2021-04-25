@@ -2,7 +2,7 @@ import React, { forwardRef, RefObject } from 'react';
 import PropTypes from 'prop-types';
 
 const defaultClassName =
-  'w-full border border-gray-300 shadow focus:outline-none focus:shadow-inner text-xs p-1';
+  'w-full bg-white dark:bg-black text-black dark:text-white border border-gray-300 shadow focus:outline-none focus:shadow-inner text-xs p-1';
 
 type InputProps = {
   className: string;

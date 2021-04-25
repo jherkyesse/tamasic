@@ -11,11 +11,11 @@ import { isElementAtTop } from '../../utils/helpers';
 import Input from '../Input';
 
 const defaultDropdownClassName =
-  'shadow border border-gray-300 bg-white outline-none';
+  'shadow border border-gray-300 bg-white dark:bg-black outline-none';
 const iconClassName =
   'absolute top-0 right-0 p-1 pointer-events-none transform duration-100 flex items-center';
 const defaultDropdownOptionClassName =
-  'bg-white p-1 text-xs border-b border-gray-100 flex items-center hover:bg-gray-100';
+  'bg-white dark:bg-black text-black dark:text-white p-1 text-xs border-b border-gray-100 flex items-center hover:bg-gray-100 dark:hover:bg-gray-700';
 const defaultOptionHeight = 26;
 const cache = new CellMeasurerCache({
   fixedWidth: true,
@@ -148,7 +148,7 @@ function Dropdown({
         <div
           className={`${defaultDropdownOptionClassName} ${
             disabled ? 'disabled:opacity-50' : ''
-          } ${scrollToIndex === index ? 'bg-gray-300' : ''}`}
+          } ${scrollToIndex === index ? '!bg-gray-300 !dark:bg-gray-700' : ''}`}
           onClick={onClick}
           onKeyDown={() => {}}
           role="listbox"
@@ -172,7 +172,6 @@ function Dropdown({
     if (isOpenDropdown) {
       const isAtTop = isElementAtTop(inputRef?.current);
       setIsAtTop(isAtTop);
-      console.log('isAtTop', isAtTop);
       document.addEventListener('mousedown', outsideClickHandler);
       return () =>
         document.removeEventListener('mousedown', outsideClickHandler);
@@ -207,7 +206,7 @@ function Dropdown({
       </div>
       {isOpenDropdown && (
         <div
-          className={`absolute left-0 w-full ${
+          className={`absolute left-0 w-full h-full ${
             isOpenDropdown ? '' : 'hidden'
           } ${isAtTop ? 'top-full' : 'bottom-full'}`}
         >
