@@ -1,12 +1,12 @@
 import React, { useContext } from 'react';
 import { Grid, CellMeasurer } from 'react-virtualized';
 import GridContext from './GridContext';
-import { cellHeight } from './config';
+import FilterInput from './FilterInput';
+import { cellHeight, defaultHeaderClassName } from './config';
+import { CellRendererProps } from './type';
 
 const defaultGridHeaderClassName =
-  'border-b border-gray-300 outline-none !overflow-x-hidden';
-const defaultHeaderClassName =
-  'flex items-center justify-center border-r border-gray-300 text-xs';
+  'border-b border-gray-300 outline-none !overflow-hidden';
 
 type GridHeaderProps = {
   width: number;
@@ -16,34 +16,67 @@ type GridHeaderProps = {
 function GridHeader({ width, scrollLeft }: GridHeaderProps) {
   const {
     columnCount,
+    columnPropsList,
+    filterable,
+    filterList,
     getColumnWidth,
-    getHeaderRowWidth,
     headerList,
     headerRowCount,
+    onChangeFilterList,
+    stickyColumnCount,
   } = useContext(GridContext);
-  const headerHeight = headerRowCount * cellHeight;
-  const cellRenderer = ({ columnIndex, rowIndex, key, style, parent }) => {
-    const header = headerList[rowIndex][columnIndex] || {};
-    if (!Object.keys(header).length) return null;
-    const { label, background, color, width = 100, left } = header;
-    function onChange({ target: { value } }) {
-      // if (!setFilterList) return;
-      // const newData = [...filterList];
-      // newData[columnIndex] = value;
-      // setFilterList(newData);
+
+  const height = (headerRowCount + +filterable) * cellHeight;
+  const cellRenderer = ({
+    columnIndex,
+    rowIndex,
+    key,
+    style,
+  }: CellRendererProps) => {
+    if (filterable && rowIndex === headerRowCount) {
+      const { width, left, top } = columnPropsList[columnIndex];
+      return (
+        <div
+          key={key}
+          className={defaultHeaderClassName}
+          style={{
+            ...style,
+            width: width || style.width,
+            left: left ?? style.left,
+            top: top ?? style.top,
+          }}
+          role="presentation"
+        >
+          {filterable && rowIndex === headerRowCount && (
+            <FilterInput
+              columnIndex={columnIndex + stickyColumnCount}
+              key={key}
+              value={filterList[columnIndex+ stickyColumnCount]}
+              onChange={onChangeFilterList}
+            />
+          )}
+        </div>
+      );
     }
+    const { label, background, color, width = 100, left, top, textAlign, row } =
+      headerList[rowIndex][columnIndex] || {};
+    const height = (row || 1) * cellHeight;
+
     return (
       <div
         key={key}
+        className={defaultHeaderClassName}
         style={{
           ...style,
-          background,
+          background: background || '#ececec',
           color,
           width: width || style.width,
-          left: left || style.left,
+          height: height ?? style.height,
+          left: left ?? style.left,
+          top: top ?? style.top,
+          textAlign: textAlign || 'center',
         }}
         role="presentation"
-        className={defaultHeaderClassName}
       >
         <div>{label}</div>
         {/* {filterable && (
@@ -57,10 +90,10 @@ function GridHeader({ width, scrollLeft }: GridHeaderProps) {
       className={defaultGridHeaderClassName}
       cellRenderer={cellRenderer}
       width={width}
-      height={headerHeight}
-      rowHeight={getHeaderRowWidth}
+      height={height}
+      rowHeight={cellHeight}
       columnWidth={getColumnWidth}
-      rowCount={headerRowCount}
+      rowCount={headerRowCount + +filterable}
       columnCount={columnCount}
       scrollLeft={scrollLeft}
     />
