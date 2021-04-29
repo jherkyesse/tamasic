@@ -1,50 +1,68 @@
-
 import React, { useContext } from 'react';
 import { Grid, CellMeasurer } from 'react-virtualized';
 import GridContext from './GridContext';
-import { cellHeight } from './config';
+import { cellHeight, defaultHeaderClassName } from './config';
+import { CellRendererProps } from './type';
+import FilterInput from './FilterInput';
 
 const defaultStickyGridHeaderClassName =
-  'border-b border-gray-300 outline-none';
-const defaultHeaderClassName =
-  'border-r border-gray-300 flex justify-center items-center text-xs';
+  'border-b border-gray-300 outline-none !overflow-x-hidden';
 
 function StickyGridHeader() {
   const {
     columnCount,
+    filterList,
+    filterable,
     getStickyColumnWidth,
     headerList,
     headerRowCount,
+    onChangeFilterList,
+    setFilterList,
     stickyHeaderRowCount,
     stickyWidth,
     stickyHeaderList,
     stickyHeaderKeyList,
+    stickyColumnPropsList,
     stickyColumnCount,
   } = useContext(GridContext);
 
-  const height = stickyHeaderRowCount * cellHeight;
-  const cellRenderer = ({ columnIndex, rowIndex, key, style, parent }) => {
-    console.log('stickyHeaderList', stickyHeaderList)
-    const header =
-      stickyHeaderList[rowIndex][columnIndex] || {};
-      console.log('header', header)
-    const {
-      label,
-      background,
-      color,
-      width = 100,
-      left,
-      top,
-      textAlign,
-      row,
-    } = header;
-    const height = (row || 1) * cellHeight;
-    function onChange({ target: { value } }) {
-      // if (!setFilterList) return;
-      // const newData = [...filterList];
-      // newData[columnIndex] = value;
-      // setFilterList(newData);
+  const height = (stickyHeaderRowCount + +filterable) * cellHeight;
+  const cellRenderer = ({
+    columnIndex,
+    rowIndex,
+    key,
+    style,
+  }: CellRendererProps) => {
+    if (filterable && rowIndex === headerRowCount) {
+      const { width, left, top } = stickyColumnPropsList[columnIndex];
+      return (
+        <div
+          key={key}
+          className={defaultHeaderClassName}
+          style={{
+            ...style,
+            width: width || style.width,
+            left: left ?? style.left,
+            top: top ?? style.top,
+          }}
+          role="presentation"
+        >
+          {filterable && rowIndex === headerRowCount && (
+            <FilterInput
+              columnIndex={columnIndex}
+              key={key}
+              value={filterList[columnIndex]}
+              onChange={onChangeFilterList}
+            />
+          )}
+        </div>
+      );
     }
+
+    const { label, background, color, width = 100, left, top, textAlign, row } =
+      (stickyHeaderList[rowIndex] || {})[columnIndex] || {};
+    const height = (row || 1) * cellHeight;
+
     return (
       <div
         key={key}
@@ -62,12 +80,10 @@ function StickyGridHeader() {
         role="presentation"
       >
         <div>{label}</div>
-        {/* {filterable && (
-            <input value={filterList[columnIndex]} onChange={onChange} />
-          )} */}
       </div>
     );
   };
+
   return (
     <Grid
       className={defaultStickyGridHeaderClassName}
@@ -76,7 +92,7 @@ function StickyGridHeader() {
       height={height}
       rowHeight={cellHeight}
       columnWidth={getStickyColumnWidth}
-      rowCount={headerRowCount}
+      rowCount={headerRowCount + +filterable}
       columnCount={stickyColumnCount}
     />
   );
