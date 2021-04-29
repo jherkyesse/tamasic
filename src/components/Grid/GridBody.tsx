@@ -1,118 +1,697 @@
-import React, { useContext, useState } from 'react';
-import { Grid, CellMeasurer } from 'react-virtualized';
+import React, {
+  useContext,
+  useEffect,
+  useState,
+  useRef,
+  useCallback,
+  useMemo,
+  RefObject,
+} from 'react';
+import { findDOMNode } from 'react-dom';
+import { Grid, CellMeasurer, OnScrollParams } from 'react-virtualized';
+import PerfectScrollbar from 'perfect-scrollbar';
+import { IoMdReturnLeft } from 'react-icons/io';
+import debounce from 'lodash/debounce';
+import Checkbox from '../Checkbox';
 import GridContext from './GridContext';
-import { cellHeight } from './config';
+import { perfectScrollbarConfig } from './config';
+// import { cache } from './config';
 
-const defaultGridBodyClassName = 'outline-none';
-const defaultBodyClassName = 'border-r border-b border-gray-300 p-1 text-xs';
+const defaultGridBodyClassName = 'outline-none cursor-cell';
+const defaultBodyClassName =
+  'border-r border-b border-gray-300 text-xs break-words outline-none p-1';
+const cellStateStyleMap = {
+  DELETE: '!text-red',
+  MODIFY: '!text-blue-800 font-black',
+};
 
 type GridBodyProps = {
   width: number;
-  onScroll: Function;
   scrollLeft: number;
   scrollTop: number;
+  onScroll: (params: OnScrollParams) => void;
 };
 
-function GridBody({ width, onScroll, scrollLeft, scrollTop }: GridBodyProps) {
-  const [state, setState] = useState({});
-  const { isEdited, fromX, fromY, toX, toY, isSelected } = state;
+type GridBodyStateProps = {
+  fromX?: number;
+  fromY?: number;
+  isEdited: boolean;
+  isSelected: boolean;
+  lockedMove: boolean;
+  toX?: number;
+  toY?: number;
+};
+
+type EditorProps = {
+  className?: string;
+  onBlur?: (value?: string) => void;
+  value?: string;
+};
+
+const Editor = ({ className, onBlur, value: defaultValue }: EditorProps) => {
+  const [value, setValue] = useState(defaultValue);
+  const onChange = (e) => setValue(e.target.value || '');
+  const onEditorBlur = () => onBlur && onBlur(value);
+  return (
+    <textarea
+      className={`absolute left-0 top-0 z-80 p-1 bg-blue-100 w-full min-h-full h-auto ${className}`}
+      autoFocus
+      value={value}
+      onChange={onChange}
+      onBlur={onEditorBlur}
+    />
+  );
+};
+
+function GridBody({ width, scrollLeft, scrollTop, onScroll }: GridBodyProps) {
+  const gridBodyRef = useRef<RefObject<{}>>(null);
+  const clipboardRef = useRef<HTMLTextAreaElement>(null);
+  const [state, setState] = useState({} as GridBodyStateProps);
+  const { fromX, fromY, isEdited, isSelected, lockedMove, toX, toY } = state;
   const {
     cache,
     columnCount,
-    columnPropsList = [],
-    data = [],
+    columnKeyList,
+    columnPropsList,
+    data,
+    filterData,
     getColumnWidth,
-    headerKeyList = [],
+    headerKeyList,
     height,
+    onChange,
+    overscanColumnCount,
+    readOnly,
     rowCount,
   } = useContext(GridContext);
-  const cellRenderer = ({ columnIndex, rowIndex, key, style, parent }) => {
-    const label = data[rowIndex][headerKeyList[columnIndex]];
-    const { width = 100 } = columnPropsList[columnIndex] || {};
-    function onChange({ target: { value } }) {
-      // if (!setFilterList) return;
-      // const newData = [...filterList];
-      // newData[columnIndex] = value;
-      // setFilterList(newData);
-    }
-    const onMouseDown = () => {
-      if (isEdited) return;
+
+  const keyUp = useCallback(() => {
+    if (fromY === undefined || fromY === null || fromY === 0) return;
+    const newY = fromY! - 1;
+    setState({ ...state, fromY: newY, toX: undefined, toY: newY });
+  }, [fromY, state]);
+  const keyDown = useCallback(() => {
+    if (fromY === undefined || fromY === null || fromY === rowCount! - 1)
+      return;
+    const newY = fromY! + 1;
+    setState({ ...state, fromY: newY, toX: undefined, toY: newY });
+  }, [fromY, rowCount, state]);
+  const keyLeft = useCallback(() => {
+    if (fromX === undefined || fromX === null || fromX === 0) return;
+    const newX = fromX - 1;
+    setState({ ...state, fromX: newX, toX: newX, toY: undefined });
+  }, [fromX, state]);
+  const keyRight = useCallback(() => {
+    if (fromX === undefined || fromX === null || fromX === columnCount! - 1)
+      return;
+    const newX = fromX + 1;
+    setState({ ...state, fromX: newX, toX: newX, toY: undefined });
+  }, [columnCount, fromX, state]);
+  const selectKeyUp = useCallback(
+    (ctrlKey: Boolean) => {
+      if (toY === 0) return;
       setState({
         ...state,
+        toY: ctrlKey ? 0 : (toY ?? fromY)! - 1,
+        toX: toX ?? fromX,
+        isSelected: false,
+      });
+    },
+    [fromX, fromY, state, toX, toY],
+  );
+  const selectKeyDown = useCallback(
+    (ctrlKey: Boolean) => {
+      if (toY === rowCount) return;
+      setState({
+        ...state,
+        toY: ctrlKey ? rowCount! - 1 : (toY ?? fromY)! + 1,
+        toX: toX ?? fromX,
+        isSelected: false,
+      });
+    },
+    [fromX, fromY, rowCount, state, toX, toY],
+  );
+  const selectKeyLeft = useCallback(
+    (ctrlKey: Boolean) => {
+      setState({
+        ...state,
+        toX: ctrlKey ? 0 : (toX ?? fromX)! - 1,
+        toY: toY ?? fromY,
+        isSelected: false,
+      });
+    },
+    [fromX, fromY, state, toX, toY],
+  );
+  const selectKeyRight = useCallback(
+    (ctrlKey: Boolean) => {
+      if (toX === columnCount) return;
+      setState({
+        ...state,
+        toX: ctrlKey ? columnCount! - 1 : (toX ?? fromX)! + 1,
+        toY: toY ?? fromY,
+        isSelected: false,
+      });
+    },
+    [columnCount, fromX, fromY, state, toX, toY],
+  );
+
+  const move = useMemo(
+    () => ({
+      ArrowLeft: keyLeft,
+      ArrowRight: keyRight,
+      ArrowUp: keyUp,
+      ArrowDown: keyDown,
+    }),
+    [keyDown, keyLeft, keyRight, keyUp],
+  );
+  const moveUpDown = useMemo(
+    () => ({
+      ArrowUp: keyUp,
+      ArrowDown: keyDown,
+    }),
+    [keyDown, keyUp],
+  );
+  const moveSelect = useMemo(
+    () => ({
+      ArrowLeft: selectKeyLeft,
+      ArrowRight: selectKeyRight,
+      ArrowUp: selectKeyUp,
+      ArrowDown: selectKeyDown,
+    }),
+    [selectKeyDown, selectKeyLeft, selectKeyRight, selectKeyUp],
+  );
+  const onCopy = readOnly
+    ? null
+    : () => {
+        const startX = Math.min(fromX!, toX ?? fromX!);
+        const startY = Math.min(fromY!, toY ?? fromY!);
+        const endX = Math.max(fromX!, toX ?? fromX!);
+        const endY = Math.max(fromY!, toY ?? fromY!);
+
+        const clippedData: string[][][] = [];
+
+        for (let j = startY; j <= endY; j++) {
+          for (let i = startX; i <= endX; i++) {
+            const { changeValue = '', value = '', state } =
+              filterData[j][columnKeyList[i]] || {};
+
+            if (clippedData[j - startY] === undefined) clippedData.push([]);
+            if (clippedData[j - startY][i - startX] === undefined)
+              clippedData[j - startY].push([]);
+            clippedData[j - startY][i - startX] =
+              state === 'DELETE' || state === 'MODIFY' ? changeValue : value;
+          }
+        }
+
+        const clipboardTextarea = clipboardRef.current;
+        if (!clipboardTextarea) return;
+        clipboardTextarea.value = clippedData
+          .map((rowData) => rowData.join(`	`))
+          .join('\n');
+        clipboardTextarea.select();
+        clipboardTextarea.setSelectionRange(0, 99999);
+        document.execCommand('copy');
+      };
+  const onCut = readOnly
+    ? null
+    : () => {
+        if (onCopy) onCopy();
+        const startX = Math.min(fromX!, toX ?? fromX!);
+        const startY = Math.min(fromY!, toY ?? fromY!);
+        const endX = Math.max(fromX!, toX ?? fromX!);
+        const endY = Math.max(fromY!, toY ?? fromY!);
+        const nextData = [...data];
+        for (let j = startY; j <= endY; j++) {
+          for (let i = startX; i <= endX; i++) {
+            const { editable = true } = columnPropsList[i];
+            // if (!editable) continue;
+            const { value, index } = filterData[j][columnKeyList[i]] || {};
+
+            const changeValue = '';
+            nextData[index][columnKeyList[i]] = {
+              ...(nextData[index][columnKeyList[i]] || {}),
+              changeValue,
+              state:
+                (value ?? '') !== changeValue
+                  ? changeValue === ''
+                    ? 'DELETE'
+                    : 'MODIFY'
+                  : '',
+            };
+          }
+        }
+        onChange && onChange(nextData);
+      };
+  const onPaste = readOnly
+    ? null
+    : () => {
+        const clipboardTextarea = clipboardRef.current;
+        if (!clipboardTextarea) return;
+        clipboardTextarea.select();
+        clipboardTextarea.setSelectionRange(0, 99999);
+        document.execCommand('paste');
+
+        const clipbaordData = (clipboardTextarea.value || '')
+          .split('\n')
+          .map((text) => text.split(`	`));
+
+        const startX = Math.min(fromX!, toX ?? fromX!);
+        const startY = Math.min(fromY!, toY ?? fromY!);
+        const endX = Math.max(fromX!, toX ?? fromX!);
+        const endY = Math.max(fromY!, toY ?? fromY!);
+        const nextData = [...data];
+        for (let j = startY; j <= endY; j++) {
+          for (let i = startX; i <= endX; i++) {
+            if (
+              i - startX < clipbaordData[0].length &&
+              j - startY < clipbaordData.length
+            ) {
+              const { value, index } = filterData[j][columnKeyList[i]];
+              const { editable = true, type } = columnPropsList[i];
+              if (!editable || type) continue;
+              const changeValue = (clipbaordData[j - startY] || {})[i - startX];
+              if (typeof changeValue !== 'string') continue;
+              nextData[index][columnKeyList[i]] = {
+                ...nextData[index][columnKeyList[i]],
+                changeValue,
+                state:
+                  (value || '') !== changeValue
+                    ? changeValue === ''
+                      ? 'DELETE'
+                      : 'MODIFY'
+                    : '',
+              };
+            }
+          }
+        }
+        onChange && onChange(nextData);
+      };
+  const onCtrlKey = {
+    c: onCopy,
+    x: onCut,
+    v: onPaste,
+  };
+  const onKeyDown = useCallback(
+    (e) => {
+      const { key, code, shiftKey, ctrlKey } = e;
+      if (ctrlKey && !shiftKey) {
+        // copy, cut, paste
+        if (onCtrlKey[key]) onCtrlKey[key]();
+        return;
+      }
+      if (isEdited && key === 'Escape') setState({ ...state, isEdited: false });
+      else if (
+        !isEdited &&
+        (key === 'Delete' || key === 'Backspace') &&
+        !readOnly
+      ) {
+        const startX = Math.min(fromX!, toX! ?? fromX);
+        const startY = Math.min(fromY!, toY! ?? fromY);
+        const endX = Math.max(fromX!, toX! ?? fromX);
+        const endY = Math.max(fromY!, toY! ?? fromY);
+        const nextData = [...data];
+        for (let j = startY; j <= endY; j++) {
+          for (let i = startX; i <= endX; i++) {
+            const { type } = columnPropsList[i] || {};
+            if (type) continue;
+            nextData[j][columnKeyList[i]] = {
+              ...nextData[j][columnKeyList[i]],
+              changeValue: '',
+              state: 'DELETE',
+            };
+          }
+        }
+        onChange && onChange(nextData);
+        return;
+      }
+
+      if (isEdited) {
+        if (lockedMove) {
+          e.stopPropagation();
+          return;
+        }
+        if (moveUpDown[key]) {
+          if (shiftKey) return;
+          e.preventDefault();
+          e.stopPropagation();
+          moveUpDown[key]();
+          setState({
+            ...state,
+            isEdited: false,
+          });
+          // const gridScrollContainer = findDOMNode(gridRef.current);
+          // if (!gridScrollContainer) return;
+          // gridScrollContainer.focus();
+        }
+      } else if (move[key]) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (shiftKey) {
+          // select multi grid
+          moveSelect[key](ctrlKey);
+        } else {
+          move[key]();
+        }
+      } else if (code.includes('Key')) {
+        // input
+        setState({
+          ...state,
+          isSelected: false,
+          isEdited: true,
+          lockedMove: false,
+        });
+      }
+    },
+    [
+      columnKeyList,
+      columnPropsList,
+      data,
+      fromX,
+      fromY,
+      isEdited,
+      lockedMove,
+      move,
+      moveSelect,
+      moveUpDown,
+      onChange,
+      onCtrlKey,
+      readOnly,
+      state,
+      toX,
+      toY,
+    ],
+  );
+
+  const Cell = ({
+    content,
+    options = [],
+    type = 'label',
+    dropdownOptions = [],
+  }) => {
+    const onDropdownChange = () => {};
+    const onChecked = () => {};
+    const radio = () =>
+      options.map((option) => (
+        <Checkbox
+          type="radio"
+          key={option.label}
+          label={option.label}
+          checked={option.key === content}
+          onChange={onChecked}
+        />
+      ));
+    const config = () => (
+      <table className="w-full h-full">
+        <tbody>
+          {(content || []).map(({ key, value }) => (
+            <tr key={key}>
+              <td className="p-1 border-b border-r border-gray-300">{key}</td>
+              <td className="p-1 border-b border-gray-300">{value}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    );
+    const dropdown = () => (
+      <div>
+        {/* <Dropdown options={dropdownOptions} onChange={onDropdownChange} /> */}
+      </div>
+    );
+
+    const label = () =>
+      // <div className="p-1 break-words whitespace-pre-wrap">{content || ''}</div>
+      content || '';
+    const labelList = () => (
+      <div className="flex flex-wrap">
+        {(content || []).map((label: string, index: number) => (
+          <span
+            className="bg-blue-500 text-white rounded-full px-2 mr-1"
+            key={index}
+          >
+            {label}
+          </span>
+        ))}
+      </div>
+    );
+    const list = () => (
+      <div className="h-full last:border-none">
+        {(content || []).map((label: string, index: number) => (
+          <div className="border-b border-gray-300 p-1 h-24px" key={index}>
+            {label}
+          </div>
+        ))}
+      </div>
+    );
+
+    return (
+      {
+        config,
+        dropdown,
+        label,
+        labelList,
+        list,
+        radio,
+      }[type]() || ''
+    );
+  };
+
+  const cellRenderer = ({
+    key: keyIndex,
+    parent,
+    columnIndex,
+    rowIndex,
+    style,
+  }: {
+    key: string;
+    parent: any;
+    columnIndex: number;
+    rowIndex: number;
+    style: object;
+  }) => {
+    const headerKey = columnKeyList[columnIndex];
+    const { value, changeValue, color, background, state } =
+      filterData[rowIndex][headerKey] || {};
+    const header = columnPropsList[columnIndex] || {};
+    const { width = 100, type, options, dropdownOptions, key } = header;
+    const onMouseDown = (e) => {
+      // right click
+      const isRightClick = e.button === 2;
+      if (
+        (isEdited || isRightClick) &&
+        (fromX !== columnIndex || fromY !== rowIndex)
+      ) {
+        setState({
+          ...state,
+          lockedMove,
+          isSelected,
+          fromX: isRightClick ? undefined : columnIndex,
+          fromY: isRightClick ? undefined : rowIndex,
+          toX: undefined,
+          toY: undefined,
+          isEdited: false,
+        });
+        return;
+      }
+      setState({
+        ...state,
+        lockedMove,
         fromX: columnIndex,
         fromY: rowIndex,
-        toX: columnIndex,
-        toY: rowIndex,
+        toX: undefined,
+        toY: undefined,
         isSelected: true,
-        isEdited: false,
+        isEdited: isEdited && fromX === columnIndex && fromY === rowIndex,
       });
     };
     const onMouseUp = () => {
-      if (isEdited) return;
+      if (isEdited || !isSelected) return;
       setState({
         ...state,
+        lockedMove,
+        isEdited,
+        fromX,
+        fromY,
+        toX,
+        toY,
         isSelected: false,
-        isEdited: false,
       });
     };
-    const onDoubleClick = () => {
-      if (isEdited) return;
+    const onMouseEnter = () => {
+      if (isEdited || !isSelected) return;
       setState({
         ...state,
-        fromX: columnIndex,
-        fromY: rowIndex,
+        lockedMove,
+        isEdited,
+        fromX,
+        fromY,
+        isSelected: true,
+        toX: columnIndex,
+        toY: rowIndex,
+      });
+    };
+    const onDoubleClick = (e: MouseEvent) => {
+      // if (isEdited) return;
+      e.preventDefault();
+      e.stopPropagation();
+
+      if (type) return;
+      const target = e.target;
+      if (!target) return;
+      // focusToSelection(target);
+
+      setState({
+        ...state,
+        fromX,
+        fromY,
+        lockedMove: true,
         toX: columnIndex,
         toY: rowIndex,
         isSelected: false,
         isEdited: true,
       });
     };
-    const onEditorChange = (e) => {
-      const { value } = e.target;
+    const onBlurEditor = (changeValue?: string) => {
+      const rowData = filterData[rowIndex];
+      const { index } = rowData || {};
       const nextData = [...data];
-      nextData
+      console.log(
+        'changeValue',
+        changeValue,
+        nextData[index],
+        key,
+        rowData[key],
+      );
+      nextData[index] = {
+        ...nextData[index],
+        [key]: {
+          ...rowData[key],
+          changeValue,
+          state:
+            (rowData[key]?.value || '') !== changeValue
+              ? changeValue === ''
+                ? 'DELETE'
+                : 'MODIFY'
+              : '',
+        },
+      };
+      console.log('nextData', nextData);
+
+      if (onChange) onChange(nextData);
     };
+    const isBeingSelected =
+      columnIndex >= Math.min(fromX!, toX!) &&
+      columnIndex <= Math.max(fromX!, toX!) &&
+      rowIndex >= Math.min(fromY!, toY!) &&
+      rowIndex <= Math.max(fromY!, toY!);
+    const isActive = `${fromX}-${fromY}` === `${columnIndex}-${rowIndex}`;
     return (
-      <CellMeasurer
-        key={key}
-        cache={cache}
-        columnIndex={columnIndex}
-        parent={parent}
-        rowIndex={rowIndex}
-      >
+      // <CellMeasurer
+      //   key={keyIndex}
+      //   cache={cache}
+      //   columnIndex={columnIndex}
+      //   parent={parent}
+      //   rowIndex={rowIndex}
+      // >
         <div
-          className={defaultBodyClassName}
-          style={{ ...style, width: width || style.width }}
+          key={key}
           role="presentation"
+          // tabIndex={1}
+          key={`cell${keyIndex}`}
+          className={`${defaultBodyClassName} ${
+            isBeingSelected ? 'bg-gray-100' : ''
+          }
+          ${
+            isActive
+              ? 'border-t border-l !border-red-700 !w-auto !h-auto z-40'
+              : ''
+          }
+           ${cellStateStyleMap[state] || ''}`}
+          style={{
+            ...style,
+            // width: isActive ? 'auto' : width || style.width,
+            // height: isActive ? 'auto' : style.height,
+            // minWidth: style.width,
+            // minHeight: style.height,
+            color,
+            background,
+            // marginTop: isActive ? '-1px' : 0,
+            // marginLeft: isActive ? '-1px' : 0,
+          }}
+          // contentEditable={isEdited && !type && isActive}
+          // suppressContentEditableWarning
+          // spellCheck={false}
           onMouseDown={onMouseDown}
           onMouseUp={onMouseUp}
+          onMouseEnter={onMouseEnter}
           onDoubleClick={onDoubleClick}
+          // onInput={onInput}
         >
-          <div className="w-full break-words">{label}</div>
-          {/* {<textarea onChange={onEditorChange}>{value}</textarea>} */}
+          {/* <Cell
+            content={value}
+            options={options}
+            dropdownOptions={dropdownOptions}
+            type={type}
+          /> */}
+          <span className="whitespace-nowrap overflow-ellipsis block overflow-hidden">
+            {changeValue ?? value}
+          </span>
+          {state === 'DELETE' && (
+            <strike className="text-red-900">{value}</strike>
+          )}
+          <Editor
+            className={isActive && isEdited ? '' : 'hidden'}
+            value={changeValue || value}
+            onBlur={onBlurEditor}
+          />
+          {/* {isActive && (
+            <SelectedCell />
+          )} */}
           {/* {filterable && (
             <input value={filterList[columnIndex]} onChange={onChange} />
           )} */}
         </div>
-      </CellMeasurer>
+      // </CellMeasurer>
     );
   };
+  useEffect(() => {
+    cache.clearAll();
+  }, [cache]);
+  useEffect(() => {
+    const gridRef = findDOMNode(gridBodyRef.current);
+    const ps = new PerfectScrollbar(gridRef, perfectScrollbarConfig);
+    return () => ps.destroy();
+  }, []);
+  useEffect(() => {
+    const gridRef = findDOMNode(gridBodyRef.current);
+    if (!gridRef) return;
+    gridRef.addEventListener('keydown', onKeyDown);
+    return () => gridRef.removeEventListener('keydown', onKeyDown);
+  }, [onKeyDown]);
+
   return (
-    <Grid
-      className={defaultGridBodyClassName}
-      cellRenderer={cellRenderer}
-      width={width}
-      height={height}
-      rowHeight={cache?.rowHeight}
-      overscanColumnCount={10}
-      columnWidth={getColumnWidth}
-      deferredMeasurementCache={cache}
-      rowCount={rowCount || 1}
-      columnCount={columnCount}
-      scrollLeft={scrollLeft}
-      scrollTop={scrollTop}
-      onScroll={onScroll}
-    />
+    <>
+      <Grid
+        tabIndex={1}
+        ref={gridBodyRef}
+        className={defaultGridBodyClassName}
+        cellRenderer={cellRenderer}
+        width={width}
+        height={height}
+        rowHeight={rowHeight}
+        // rowHeight={cache.rowHeight}
+        columnWidth={getColumnWidth}
+        deferredMeasurementCache={cache}
+        rowCount={rowCount || 1}
+        overscanColumnCount={overscanColumnCount}
+        columnCount={columnCount}
+        scrollLeft={scrollLeft}
+        onScroll={onScroll}
+        scrollTop={scrollTop}
+        scrollToColumn={isEdited ? undefined : fromX}
+        scrollToRow={isEdited ? undefined : fromY}
+      />
+      <textarea className="hidden" ref={clipboardRef}></textarea>
+    </>
   );
 }
 
