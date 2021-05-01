@@ -1,12 +1,16 @@
 import React, { useContext } from 'react';
 import { Grid, CellMeasurer } from 'react-virtualized';
+import {
+  FcAlphabeticalSortingAz,
+  FcAlphabeticalSortingZa,
+} from 'react-icons/fc';
 import GridContext from './GridContext';
 import FilterInput from './FilterInput';
 import { cellHeight, defaultHeaderClassName } from './config';
 import { CellRendererProps } from './type';
 
 const defaultGridHeaderClassName =
-  'border-b border-gray-300 outline-none !overflow-hidden';
+  'border-b border-gray-300 outline-none !overflow-hidden select-none';
 
 type GridHeaderProps = {
   width: number;
@@ -22,7 +26,11 @@ function GridHeader({ width, scrollLeft }: GridHeaderProps) {
     getColumnWidth,
     headerList,
     headerRowCount,
+    isSortAsc,
     onChangeFilterList,
+    setIsSortAsc,
+    setSortKey,
+    sortKey,
     stickyColumnCount,
   } = useContext(GridContext);
 
@@ -30,42 +38,56 @@ function GridHeader({ width, scrollLeft }: GridHeaderProps) {
   const cellRenderer = ({
     columnIndex,
     rowIndex,
-    key,
+    key: cellRendererKey,
     style,
   }: CellRendererProps) => {
     if (filterable && rowIndex === headerRowCount) {
-      const { width, left, top } = columnPropsList[columnIndex];
+      const { width, unfilterable } = columnPropsList[columnIndex];
       return (
         <div
-          key={key}
+          key={cellRendererKey}
           className={defaultHeaderClassName}
           style={{
             ...style,
             width: width || style.width,
-            left: left ?? style.left,
-            top: top ?? style.top,
           }}
           role="presentation"
         >
-          {filterable && rowIndex === headerRowCount && (
-            <FilterInput
-              columnIndex={columnIndex + stickyColumnCount}
-              key={key}
-              value={filterList[columnIndex+ stickyColumnCount]}
-              onChange={onChangeFilterList}
-            />
-          )}
+          <FilterInput
+            unfilterable={unfilterable}
+            columnIndex={columnIndex + stickyColumnCount}
+            value={filterList[columnIndex + stickyColumnCount]}
+            onChange={onChangeFilterList}
+          />
         </div>
       );
     }
-    const { label, background, color, width = 100, left, top, textAlign, row } =
-      headerList[rowIndex][columnIndex] || {};
+    const {
+      background,
+      color,
+      label,
+      left,
+      key,
+      row,
+      top,
+      textAlign,
+      unsortable,
+      width = 100,
+    } = headerList[rowIndex][columnIndex] || {};
     const height = (row || 1) * cellHeight;
+    const isSorted = sortKey === key;
+    const isColumnKeyRow = rowIndex === headerRowCount - 1;
+    const onClick = () => {
+      if (unsortable || !isColumnKeyRow) return;
+      setIsSortAsc(!isSortAsc);
+      if (sortKey !== key) setSortKey(key);
+    };
 
     return (
       <div
-        key={key}
+        key={cellRendererKey}
         className={defaultHeaderClassName}
+        role="presentation"
         style={{
           ...style,
           background: background || '#ececec',
@@ -75,13 +97,17 @@ function GridHeader({ width, scrollLeft }: GridHeaderProps) {
           left: left ?? style.left,
           top: top ?? style.top,
           textAlign: textAlign || 'center',
+          cursor: unsortable || !isColumnKeyRow ? 'default' : 'pointer',
         }}
-        role="presentation"
+        onClick={onClick}
       >
         <div>{label}</div>
-        {/* {filterable && (
-            <input value={filterList[columnIndex]} onChange={onChange} />
-          )} */}
+        {isSorted &&
+          (isSortAsc ? (
+            <FcAlphabeticalSortingAz size={20} className="mx-1" />
+          ) : (
+            <FcAlphabeticalSortingZa size={20} className="mx-1" />
+          ))}
       </div>
     );
   };

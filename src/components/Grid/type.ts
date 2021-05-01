@@ -1,23 +1,32 @@
 export type GridCellProps = {
   background?: string;
+  col?: number;
   color?: string;
+  disabled?: boolean;
   editable?: boolean;
-  index: number;
-  key: string;
-  label: string;
+  key?: string;
+  label?: string;
   left?: number;
   row?: number;
   state?: string;
-  textAlign?: 'left' | 'center' | 'right';
+  textAlign?: string;
   top?: number;
   type?: string;
+  unfilterable?: boolean;
+  unsortable?: boolean;
+  value?: string | number | boolean;
   width?: number;
+};
+
+export type GridDataProps = {
+  index: number;
+  order?: { value: number | string };
 };
 
 export type CellRendererProps = {
   columnIndex: number;
   key: string;
-  parent: object;
+  parent?: object;
   rowIndex: number;
   style: { height: number; left: number; top: number; width: number };
 };

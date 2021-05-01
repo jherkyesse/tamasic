@@ -72,13 +72,13 @@ function Dropdown({
     );
     cache.clearAll();
     return filterOptions;
-  }, [searchInputValue]);
+  }, [options, searchInputValue]);
   const { height, rowCount } = useMemo(() => {
     const rowCount = filterOptions.length;
     const height = (rowCount || 1) * defaultOptionHeight;
     cache.clearAll();
     return { height: Math.min(height, maxHeight), rowCount };
-  }, [filterOptions]);
+  }, [filterOptions, maxHeight]);
   const onFocus = () => setIsOpenDropdown(true);
   const onBlur = () => setIsOpenDropdown(false);
 
@@ -170,15 +170,14 @@ function Dropdown({
   };
   useEffect(() => {
     if (isOpenDropdown) {
+      setSearchInputValue('');
       const isAtTop = isElementAtTop(inputRef?.current);
       setIsAtTop(isAtTop);
       document.addEventListener('mousedown', outsideClickHandler);
       return () =>
         document.removeEventListener('mousedown', outsideClickHandler);
     } else {
-      const { label } =
-        filterOptions.find((option) => option.label === searchInputValue) || {};
-      setSearchInputValue(label || '');
+      setSearchInputValue(value);
       if (inputRef && inputRef.current) inputRef.current.blur();
       return;
     }

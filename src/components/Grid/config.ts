@@ -12,7 +12,7 @@ export const tableTbodyTdClassName =
   'relative border-r border-b align-baseline whitespace-nowrap px-5px py-3px leading-5 z-0';
 
 export const defaultHeaderClassName =
-  'border-b border-r border-gray-300 flex justify-center items-center text-xs !overflow-hidden';
+  'border-b border-r border-gray-300 flex justify-center items-center text-xs';
 
 export const stickyClassName = 'sticky left-0 bg-white z-50';
 

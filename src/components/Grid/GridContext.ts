@@ -1,16 +1,17 @@
 import { createContext } from 'react';
 import { CellMeasurerCacheInterface } from 'react-virtualized';
-import { GridCellProps } from './type';
+import { GridCellProps, GridDataProps } from './type';
 
 type GridContextProps = {
   cache?: CellMeasurerCacheInterface;
   columnCount: number;
   columnKeyList: Array<string>;
   columnPropsList: Array<GridCellProps>;
-  data?: Array<GridCellProps>;
+  columnWidthList: Array<number>;
+  data?: Array<GridDataProps>;
   filterable: boolean;
   filterList: Array<string>;
-  filterData: Array<GridCellProps>;
+  filterData: Array<GridDataProps>;
   getColumnWidth?: ({ index }: { index: number }) => void;
   getHeaderRowWidth?: ({ index }: { index: number }) => void;
   getStickyColumnWidth?: ({ index }: { index: number }) => void;
@@ -18,12 +19,19 @@ type GridContextProps = {
   headerKeyList: Array<Array<string>>;
   headerRowCount: number;
   height?: number;
+  isSortAsc?: boolean;
   onChange?: Function;
   onChangeFilterList?: (value: string, index: number) => void;
   overscanColumnCount?: number;
+  overscanRowCount?: number;
   readOnly: boolean;
   rowCount: number;
   selectable?: boolean;
+  setColumnWidthList: Function;
+  setIsSortAsc: (isSortAsc: boolean) => void;
+  setSortKey: (sortKey?: string) => void;
+  sortable?: boolean;
+  sortKey?: string;
   stickyColumnCount: number;
   stickyColumnPropsList: Array<GridCellProps>;
   stickyHeaderList: Array<Array<GridCellProps>>;

@@ -16,6 +16,7 @@ import {
   Textarea,
 } from './components';
 import './constants/styles/common.scss';
+import { transformGridData, mapIndex } from './utils/helpers';
 import {
   headerList,
   headerKeyList,
@@ -24,6 +25,8 @@ import {
   gridHeaderList,
   gridHeaderKeyList,
   tableData,
+  gridData,
+  prevGridData,
 } from './constants/mock';
 import { dropdownOptions } from './constants/dropdown.mock';
 
@@ -37,9 +40,7 @@ function App({ name }: Props) {
   });
   const [user, setUser] = useState();
   const [option, setOption] = useState();
-  const [tData, setTData] = useState(
-    tableData.map((data, order) => ({ ...data, order: order + 1 })),
-  );
+  const [tData, setTData] = useState(mapIndex(transformGridData(prevGridData)));
   const toggleTheme = () => setTheme(theme === 'dark' ? 'light' : 'dark');
   useEffect(() => {
     if (theme === 'dark') document.documentElement.classList.add('dark');
@@ -77,6 +78,7 @@ function App({ name }: Props) {
             <Button elevated label="Option2" />
             <Button elevated disabled label="Option3" />
           </Button.Group>
+          {option}
           <Dropdown
             options={dropdownOptions}
             value={option}

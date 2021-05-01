@@ -1,26 +1,29 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useCallback, useState, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import { ScrollSync, AutoSizer, CellMeasurerCache } from 'react-virtualized';
+import debounce from 'lodash/debounce';
 import { GridProvider } from './GridContext';
 import StickyGridHeader from './StickyGridHeader';
 import StickyGridBody from './StickyGridBody';
 import GridHeader from './GridHeader';
 import GridBody from './GridBody';
 import { cellHeight, columnWidth } from './config';
-import { GridCellProps } from './type';
+import { GridCellProps, GridDataProps } from './type';
 
 const defaultGridClassName =
-  'w-full flex flex-nowrap border border-gray-300 overflow-hidden select-none';
+  'w-full flex flex-nowrap border border-gray-300 overflow-hidden';
 
 type GridProps = {
-  data: Array<GridCellProps>;
+  data: Array<GridDataProps>;
   filterable: boolean;
   headerList: Array<Array<GridCellProps>>;
   headerKeyList: Array<Array<string>>;
   height?: number;
   onChange?: Function;
   overscanColumnCount?: number;
+  overscanRowCount?: number;
   selectable?: boolean;
+  sortable?: boolean;
   stickyHeaderList: Array<Array<GridCellProps>>;
   stickyHeaderKeyList: Array<Array<string>>;
 };
@@ -33,7 +36,9 @@ function Grid({
   height,
   onChange,
   overscanColumnCount,
+  overscanRowCount,
   selectable,
+  sortable,
   stickyHeaderList,
   stickyHeaderKeyList,
 }: GridProps) {
@@ -60,10 +65,23 @@ function Grid({
     () => stickyColumnKeyList.concat(columnKeyList),
     [columnKeyList, stickyColumnKeyList],
   );
+  const { allColumnPropsList, allColumnPropsMap } = useMemo(() => {
+    const allColumnPropsList = stickyColumnPropsList.concat(columnPropsList);
+    const allColumnPropsMap = allColumnPropsList.reduce(
+      (acc: object, cur: GridCellProps) => {
+        acc[cur.key!] = cur;
+        return acc;
+      },
+      {},
+    );
+    return { allColumnPropsList, allColumnPropsMap };
+  }, [columnPropsList, stickyColumnPropsList]);
   const readOnly = !onChange;
   const [filterList, setFilterList] = useState(
     new Array(allColumnKeyList.length).fill(''),
   );
+  const [isSortAsc, setIsSortAsc] = useState(false);
+  const [sortKey, setSortKey] = useState('');
 
   const filterData = useMemo(() => {
     const filterData = data.reduce((acc: Array<object>, item: object) => {
@@ -72,7 +90,7 @@ function Grid({
           !filter ||
           (
             item[allColumnKeyList[index]]?.changeValue ??
-            (item[allColumnKeyList[index]]?.value || '')
+            (item[allColumnKeyList[index]]?.value || '').toString()
           )
             .toLowerCase()
             .includes(filter.toLowerCase()),
@@ -80,15 +98,31 @@ function Grid({
       if (filterKey) acc.push(item);
       return acc;
     }, []);
-    // if (orderKey) {
-    //   filterData.sort((a, b) =>
-    //     orderType === 'ascend'
-    //       ? (a[orderKey] || '').localeCompare(b[orderKey] || '')
-    //       : (b[orderKey] || '').localeCompare(a[orderKey] || ''),
-    //   );
-    // }
+    if (sortKey) {
+      const isNumber = allColumnPropsMap[sortKey]?.type === 'number';
+      if (isNumber) {
+        filterData.sort((a, b) =>
+          isSortAsc
+            ? (a[sortKey]?.value || 0) - (b[sortKey]?.value || 0)
+            : (b[sortKey]?.value || 0) - (a[sortKey]?.value || 0),
+        );
+      } else {
+        filterData.sort((a, b) =>
+          isSortAsc
+            ? (a[sortKey]?.value || '').localeCompare(b[sortKey]?.value || '')
+            : (b[sortKey]?.value || '').localeCompare(a[sortKey]?.value || ''),
+        );
+      }
+    }
     return filterData;
-  }, [data, filterList, allColumnKeyList]);
+  }, [
+    data,
+    sortKey,
+    filterList,
+    allColumnKeyList,
+    allColumnPropsMap,
+    isSortAsc,
+  ]);
 
   const onChangeFilterList = (value: string, columnIndex: number) => {
     if (!setFilterList) return;
@@ -123,13 +157,18 @@ function Grid({
         headerKeyList,
         headerRowCount,
         height,
+        isSortAsc,
         onChange,
         onChangeFilterList,
         overscanColumnCount,
+        overscanRowCount,
         readOnly,
         rowCount,
         selectable,
-        setFilterList,
+        setIsSortAsc,
+        setSortKey,
+        sortable,
+        sortKey,
         stickyColumnCount,
         stickyColumnPropsList,
         stickyHeaderList,
@@ -182,7 +221,9 @@ Grid.propTypes = {
   height: PropTypes.number,
   onChange: PropTypes.func,
   overscanColumnCount: PropTypes.number,
+  overscanRowCount: PropTypes.number,
   selectable: PropTypes.bool,
+  sortable: PropTypes.bool,
   stickyHeaderList: PropTypes.arrayOf(PropTypes.arrayOf(PropTypes.shape({}))),
   stickyHeaderKeyList: PropTypes.arrayOf(PropTypes.arrayOf(PropTypes.string)),
 };
@@ -192,8 +233,10 @@ Grid.defaultProps = {
   filterable: true,
   height: 500,
   onChange: null,
-  overscanColumnCount: 10,
+  overscanColumnCount: 2,
+  overscanRowCount: 2,
   selectable: false,
+  sortable: true,
   stickyHeaderList: [[]],
   stickyHeaderKeyList: [[]],
 };

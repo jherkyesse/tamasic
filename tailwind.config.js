@@ -14,6 +14,10 @@ module.exports = {
       ...colors,
     },
     extend: {
+      cursor: {
+        cell: 'cell',
+        'col-resize': 'col-resize',
+      },
       margin: {
         '1px': '1px',
         '2px': '2px',
@@ -64,6 +68,10 @@ module.exports = {
         '30px': '30px',
       },
       width: {
+        '1px': '1px',
+        '2px': '2px',
+        '4px': '4px',
+        '6px': '6px',
         '100px': '100px',
         '150px': '150px',
         '200px': '200px',

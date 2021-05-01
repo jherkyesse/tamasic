@@ -5,7 +5,7 @@ import { CellRendererProps } from './type';
 import { cellHeight } from './config';
 
 const defaultStickyGridClassName = 'outline-none !overflow-hidden';
-const defaultBodyClassName = 'border-r border-b border-gray-300 text-xs p-1';
+const defaultBodyClassName = 'border-r border-b border-gray-300 text-xs p-1 flex items-center';
 
 type StickyGridBodyProps = {
   scrollTop: number;
@@ -19,6 +19,7 @@ function StickyGridBody({ scrollTop }: StickyGridBodyProps) {
     getStickyColumnWidth,
     height,
     onChange,
+    overscanRowCount,
     stickyColumnCount,
     stickyColumnPropsList = [],
     stickyColumnKeyList = [],
@@ -27,23 +28,22 @@ function StickyGridBody({ scrollTop }: StickyGridBodyProps) {
   const rowCount = filterData.length;
   const cellRenderer = ({
     key,
-    parent,
     columnIndex,
     rowIndex,
     style,
   }: CellRendererProps) => {
     const headerKey = stickyColumnKeyList[columnIndex];
 
-    console.log('filterData', filterData, rowIndex);
-    
-    const { value, changeValue } = filterData[rowIndex][headerKey] || {};
-    const { width = 100, type, textAlign } =
+    const { row = 1 } = filterData[rowIndex] || {};
+    const { value, changeValue } =
+      (filterData[rowIndex] || {})[headerKey] || {};
+    const { width = 100, type = 'label', textAlign } =
       stickyColumnPropsList[columnIndex] || {};
 
     const Checkbox = (defaultValue: boolean) => {
       const onChecked = () => {
         const nextData = [...data];
-        const { index } = filterData[rowIndex];
+        const { index } = filterData[rowIndex] || {};
         nextData[index][headerKey] = {
           ...nextData[index][headerKey],
           changeValue: !defaultValue,
@@ -58,7 +58,6 @@ function StickyGridBody({ scrollTop }: StickyGridBodyProps) {
     const renderMap = {
       checkbox: Checkbox,
     };
-
     return (
       // <CellMeasurer
       //   key={key}
@@ -67,28 +66,29 @@ function StickyGridBody({ scrollTop }: StickyGridBodyProps) {
       //   parent={parent}
       //   rowIndex={rowIndex}
       // >
-        <div
-        key={key}
-          className={defaultBodyClassName}
-          style={{
-            ...style,
-            width: width || style.width,
-            textAlign,
-          }}
-          role="presentation"
-        >
-          <div className="whitespace-wrap break-words">
-            {((renderMap[type] && renderMap[type](changeValue ?? value)) ||
-              changeValue) ??
-              value}
-          </div>
+      <div
+        key={`${type}-${key}`}
+        className={defaultBodyClassName}
+        style={{
+          ...style,
+          width: width || style.width,
+          textAlign,
+          height: row * cellHeight,
+        }}
+        role="presentation"
+      >
+        <div className="whitespace-wrap break-words w-full">
+          {((renderMap[type] && renderMap[type](changeValue ?? value)) ||
+            changeValue) ??
+            value}
         </div>
+      </div>
       // </CellMeasurer>
     );
   };
-  useEffect(() => {
-    cache.clearAll();
-  }, [cache]);
+  // useEffect(() => {
+  //   cache.clearAll();
+  // }, [cache]);
   return (
     <>
       <Grid
@@ -99,6 +99,7 @@ function StickyGridBody({ scrollTop }: StickyGridBodyProps) {
         // rowHeight={cache.rowHeight}
         rowHeight={cellHeight}
         columnWidth={getStickyColumnWidth}
+        overscanRowCount={overscanRowCount}
         // deferredMeasurementCache={cache}
         rowCount={rowCount || 1}
         columnCount={stickyColumnCount}
