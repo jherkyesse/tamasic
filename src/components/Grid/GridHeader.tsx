@@ -1,5 +1,5 @@
 import React, { useContext } from 'react';
-import { Grid, CellMeasurer } from 'react-virtualized';
+import { Grid } from 'react-virtualized';
 import {
   FcAlphabeticalSortingAz,
   FcAlphabeticalSortingZa,
@@ -10,7 +10,7 @@ import { cellHeight, defaultHeaderClassName } from './config';
 import { CellRendererProps } from './type';
 
 const defaultGridHeaderClassName =
-  'border-b border-gray-300 outline-none !overflow-hidden select-none';
+  'border-b border-gray-300 dark:border-gray-400 outline-none !overflow-hidden select-none';
 
 type GridHeaderProps = {
   width: number;
@@ -80,7 +80,7 @@ function GridHeader({ width, scrollLeft }: GridHeaderProps) {
     const onClick = () => {
       if (unsortable || !isColumnKeyRow) return;
       setIsSortAsc(!isSortAsc);
-      if (sortKey !== key) setSortKey(key);
+      if (sortKey !== key) setSortKey(key!);
     };
 
     return (
@@ -90,7 +90,7 @@ function GridHeader({ width, scrollLeft }: GridHeaderProps) {
         role="presentation"
         style={{
           ...style,
-          background: background || '#ececec',
+          background: background,
           color,
           width: width || style.width,
           height: height ?? style.height,

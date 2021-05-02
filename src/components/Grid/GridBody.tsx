@@ -6,24 +6,30 @@ import React, {
   useCallback,
   useMemo,
   RefObject,
+  useLayoutEffect,
 } from 'react';
 import { findDOMNode } from 'react-dom';
-import { Grid, CellMeasurer, OnScrollParams } from 'react-virtualized';
+import { Grid, OnScrollParams } from 'react-virtualized';
 import PerfectScrollbar from 'perfect-scrollbar';
 // import { IoMdReturnLeft } from 'react-icons/io';
 // import debounce from 'lodash/debounce';
 // import Checkbox from '../Checkbox';
 import GridContext from './GridContext';
 import { perfectScrollbarConfig, cellHeight } from './config';
-// import { cache } from './config';
 
 const defaultGridBodyClassName = 'outline-none select-none cursor-cell';
 const defaultBodyClassName =
-  'border-r border-b border-gray-300 text-xs break-words outline-none p-1';
+  'border-r border-b border-gray-300 dark:border-gray-400 text-xs text-black dark:text-gray-200 break-words outline-none p-1';
 const cellStateStyleMap = {
   DELETE: '!text-red',
   MODIFY: '!text-blue-800 font-black',
 };
+const unmodifiableClassName = ['', 'text-gray-400'];
+const selectedClassName = ['', 'bg-gray-100 dark:bg-gray-600'];
+const activeClassName = [
+  '',
+  'border-t border-l !border-red-700 !w-auto !h-auto z-40',
+];
 
 type GridBodyProps = {
   width: number;
@@ -43,22 +49,30 @@ type GridBodyStateProps = {
 };
 
 type EditorProps = {
-  className?: string;
   onBlur?: (value?: string) => void;
+  open: boolean;
   value?: string;
 };
 
-const Editor = ({ className, onBlur, value }: EditorProps) => {
+const Editor = ({ onBlur, open, value }: EditorProps) => {
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [editValue, setEditValue] = useState(value);
-  const onChange = (e) => setEditValue(e.target.value || '');
-  const onEditorBlur = () => onBlur && onBlur(value);
+  const onChange = (e: React.ChangeEvent<HTMLTextAreaElement>) =>
+    setEditValue(e.target.value || '');
+  const onEditorBlur = () => onBlur && onBlur(editValue);
   useEffect(() => {
     setEditValue(value);
   }, [value]);
+  useLayoutEffect(() => {
+    if (open) textareaRef.current?.focus();
+  }, [open]);
   return (
     <textarea
-      className={`absolute left-0 top-0 z-80 p-1 bg-blue-100 w-full min-h-full h-auto ${className}`}
-      autoFocus
+      ref={textareaRef}
+      className={`absolute left-0 top-0 z-80 p-1 bg-blue-100 w-full min-h-full h-auto ${
+        open ? '' : 'hidden'
+      }`}
+      autoFocus={open}
       value={editValue}
       onChange={onChange}
       onBlur={onEditorBlur}
@@ -72,14 +86,12 @@ function GridBody({ width, scrollLeft, scrollTop, onScroll }: GridBodyProps) {
   const [state, setState] = useState({} as GridBodyStateProps);
   const { fromX, fromY, isEdited, isSelected, lockedMove, toX, toY } = state;
   const {
-    cache,
     columnCount,
     columnKeyList,
     columnPropsList,
     data,
     filterData,
     getColumnWidth,
-    headerKeyList,
     height,
     onChange,
     overscanColumnCount,
@@ -239,8 +251,8 @@ function GridBody({ width, scrollLeft, scrollTop, onScroll }: GridBodyProps) {
               const nextData = [...data];
               for (let j = startY; j <= endY; j++) {
                 for (let i = startX; i <= endX; i++) {
-                  const { editable = true } = columnPropsList[i];
-                  // if (!editable) continue;
+                  const { unmodifiable } = columnPropsList[i];
+                  if (unmodifiable) continue;
                   const { index } = filterData[j] || {};
                   const { value } = filterData[j][columnKeyList[i]] || {};
 
@@ -305,8 +317,8 @@ function GridBody({ width, scrollLeft, scrollTop, onScroll }: GridBodyProps) {
                   ) {
                     const { index } = filterData[j];
                     const { value } = filterData[j][columnKeyList[i]];
-                    const { editable = true, type } = columnPropsList[i];
-                    if (!editable || type) continue;
+                    const { type, unmodifiable } = columnPropsList[i];
+                    if (type || unmodifiable) continue;
                     const changeValue = (clipboardData[j - startY] || {})[
                       i - startX
                     ];
@@ -351,7 +363,7 @@ function GridBody({ width, scrollLeft, scrollTop, onScroll }: GridBodyProps) {
     [onCopy, onCut, onPaste],
   );
   const onKeyDown = useCallback(
-    (e) => {
+    (e: React.KeyboardEvent<HTMLElement>) => {
       const { code, key, metaKey, shiftKey, ctrlKey } = e;
       const isCtrl = ctrlKey || metaKey;
       if (isCtrl && !shiftKey) {
@@ -372,8 +384,8 @@ function GridBody({ width, scrollLeft, scrollTop, onScroll }: GridBodyProps) {
         const nextData = [...data];
         for (let j = startY; j <= endY; j++) {
           for (let i = startX; i <= endX; i++) {
-            const { type } = columnPropsList[i] || {};
-            if (type) continue;
+            const { type, unmodifiable } = columnPropsList[i] || {};
+            if (type || unmodifiable) continue;
             nextData[j][columnKeyList[i]] = {
               ...nextData[j][columnKeyList[i]],
               changeValue: '',
@@ -399,9 +411,8 @@ function GridBody({ width, scrollLeft, scrollTop, onScroll }: GridBodyProps) {
             ...state,
             isEdited: false,
           });
-          // const gridScrollContainer = findDOMNode(gridRef.current);
-          // if (!gridScrollContainer) return;
-          // gridScrollContainer.focus();
+          const gridRef = findDOMNode(gridBodyRef.current);
+          gridRef.focus();
         }
       } else if (move[key]) {
         e.preventDefault();
@@ -518,7 +529,6 @@ function GridBody({ width, scrollLeft, scrollTop, onScroll }: GridBodyProps) {
 
   const cellRenderer = ({
     key: keyIndex,
-    parent,
     columnIndex,
     rowIndex,
     style,
@@ -533,8 +543,15 @@ function GridBody({ width, scrollLeft, scrollTop, onScroll }: GridBodyProps) {
     const { value, changeValue, color, background, state } =
       (filterData[rowIndex] || {})[headerKey] || {};
     const header = columnPropsList[columnIndex] || {};
-    const { width = 100, type, options, dropdownOptions, key } = header;
-    const onMouseDown = (e) => {
+    const {
+      width = 100,
+      type,
+      options,
+      dropdownOptions,
+      key,
+      unmodifiable,
+    } = header;
+    const onMouseDown = (e: React.MouseEvent<HTMLElement>) => {
       // right click
       const isRightClick = e.button === 2;
       if (
@@ -590,15 +607,12 @@ function GridBody({ width, scrollLeft, scrollTop, onScroll }: GridBodyProps) {
         toY: rowIndex,
       });
     };
-    const onDoubleClick = (e: MouseEvent) => {
-      // if (isEdited) return;
+    const onDoubleClick = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
       e.preventDefault();
       e.stopPropagation();
-
-      if (type) return;
+      if (type || unmodifiable || isEdited) return;
       const target = e.target;
       if (!target) return;
-      // focusToSelection(target);
 
       setState({
         ...state,
@@ -617,11 +631,11 @@ function GridBody({ width, scrollLeft, scrollTop, onScroll }: GridBodyProps) {
       const nextData = [...data];
       nextData[index] = {
         ...nextData[index],
-        [key]: {
-          ...rowData[key],
+        [key!]: {
+          ...rowData[key!],
           changeValue,
           state:
-            (rowData[key]?.value || '') !== changeValue
+            (rowData[key!]?.value || '') !== changeValue
               ? changeValue === ''
                 ? 'DELETE'
                 : 'MODIFY'
@@ -638,79 +652,42 @@ function GridBody({ width, scrollLeft, scrollTop, onScroll }: GridBodyProps) {
       rowIndex <= Math.max(fromY!, toY!);
     const isActive = `${fromX}-${fromY}` === `${columnIndex}-${rowIndex}`;
     return (
-      // <CellMeasurer
-      //   key={keyIndex}
-      //   cache={cache}
-      //   columnIndex={columnIndex}
-      //   parent={parent}
-      //   rowIndex={rowIndex}
-      // >
       <div
-        key={key}
         role="presentation"
-        // tabIndex={1}
-        key={`cell-${type}-${keyIndex}`}
-        className={`${defaultBodyClassName} ${
-          isBeingSelected ? 'bg-gray-100' : ''
+        key={keyIndex}
+        className={`${defaultBodyClassName}
+        ${selectedClassName[+isBeingSelected!] || ''} ${
+          activeClassName[+isActive]
         }
-          ${
-            isActive
-              ? 'border-t border-l !border-red-700 !w-auto !h-auto z-40'
-              : ''
-          }
-           ${cellStateStyleMap[state] || ''}`}
+           ${cellStateStyleMap[state] || ''} ${
+          unmodifiableClassName[+unmodifiable!]
+        }`}
         style={{
           ...style,
-          // width: isActive ? 'auto' : width || style.width,
-          // height: isActive ? 'auto' : style.height,
-          // minWidth: style.width,
-          // minHeight: style.height,
           color,
           background,
-          // marginTop: isActive ? '-1px' : 0,
-          // marginLeft: isActive ? '-1px' : 0,
         }}
-        // contentEditable={isEdited && !type && isActive}
-        // suppressContentEditableWarning
-        // spellCheck={false}
         onMouseDown={onMouseDown}
         onMouseUp={onMouseUp}
         onMouseEnter={onMouseEnter}
         onDoubleClick={onDoubleClick}
-        // onInput={onInput}
       >
-        {/* <Cell
-            content={value}
-            options={options}
-            dropdownOptions={dropdownOptions}
-            type={type}
-          /> */}
         <span className="whitespace-nowrap overflow-ellipsis block overflow-hidden">
           {changeValue ?? value}
         </span>
         {state === 'DELETE' && (
-          <strike className="whitespace-nowrap overflow-ellipsis block overflow-hidden text-red-900">
+          <span className="whitespace-nowrap overflow-ellipsis block overflow-hidden text-red-900 line-through">
             {value}
-          </strike>
+          </span>
         )}
         <Editor
-          className={isActive && isEdited ? '' : 'hidden'}
+          open={isActive && isEdited && !unmodifiable}
           value={changeValue ?? value}
           onBlur={onBlurEditor}
         />
-        {/* {isActive && (
-            <SelectedCell />
-          )} */}
-        {/* {filterable && (
-            <input value={filterList[columnIndex]} onChange={onChange} />
-          )} */}
       </div>
-      // </CellMeasurer>
     );
   };
-  // useEffect(() => {
-  //   cache.clearAll();
-  // }, [cache]);
   // useEffect(() => {
   //   const gridRef = findDOMNode(gridBodyRef.current);
   //   const ps = new PerfectScrollbar(gridRef, perfectScrollbarConfig);
@@ -733,9 +710,7 @@ function GridBody({ width, scrollLeft, scrollTop, onScroll }: GridBodyProps) {
         width={width}
         height={height}
         rowHeight={cellHeight}
-        // rowHeight={cache.rowHeight}
         columnWidth={getColumnWidth}
-        // deferredMeasurementCache={cache}
         rowCount={rowCount || 1}
         overscanColumnCount={overscanColumnCount}
         columnCount={columnCount}

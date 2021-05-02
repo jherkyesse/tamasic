@@ -391,6 +391,7 @@ export const gridHeaderList = [
     {
       label: 'Option1',
       key: 'option1',
+      unmodifiable: true,
     },
     {
       label: 'Option2',

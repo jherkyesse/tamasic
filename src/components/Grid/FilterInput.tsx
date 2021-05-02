@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-const inputClassName = 'outline-none w-full h-full p-1 disabled:bg-gray-50 italic';
+const inputClassName = 'outline-none w-full h-full p-1 bg-white dark:bg-gray-900 disabled:bg-gray-50 dark:disabled:bg-gray-800 italic';
 
 type FilterInputProps = {
   columnIndex: number;

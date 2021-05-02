@@ -1,7 +1,6 @@
 import React, { useCallback, useState, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import { ScrollSync, AutoSizer, CellMeasurerCache } from 'react-virtualized';
-import debounce from 'lodash/debounce';
 import { GridProvider } from './GridContext';
 import StickyGridHeader from './StickyGridHeader';
 import StickyGridBody from './StickyGridBody';
@@ -130,20 +129,28 @@ function Grid({
     newData[columnIndex] = value;
     setFilterList(newData);
   };
-  const getColumnWidth = ({ index }: { index: number }) =>
-    columnPropsList.map(({ width = 100 }) => width)[index];
-  const getStickyColumnWidth = ({ index }: { index: number }) =>
-    stickyColumnPropsList.map(({ width = 100 }) => width)[index];
+  const getColumnWidth = useCallback(
+    ({ index }: { index: number }) => columnPropsList[index].width ?? 100,
+    [columnPropsList],
+  );
+  const getStickyColumnWidth = useCallback(
+    ({ index }: { index: number }) => stickyColumnPropsList[index].width ?? 100,
+    [stickyColumnPropsList],
+  );
+  const getStickyRowWidth = useCallback(
+    ({ index }: { index: number }) => (filterData[index].row ?? 1) * cellHeight,
+    [filterData],
+  );
   return (
     <GridProvider
       value={{
-        cache: new CellMeasurerCache({
-          defaultWidth: columnWidth,
-          defaultHeight: cellHeight,
-          minWidth: 60,
-          fixedWidth: true,
-          fixedHeight: false,
-        }),
+        // cache: new CellMeasurerCache({
+        //   defaultWidth: columnWidth,
+        //   defaultHeight: cellHeight,
+        //   minWidth: 60,
+        //   fixedWidth: true,
+        //   fixedHeight: false,
+        // }),
         columnCount,
         columnKeyList,
         columnPropsList,
@@ -153,6 +160,7 @@ function Grid({
         filterData,
         getColumnWidth,
         getStickyColumnWidth,
+        getStickyRowWidth,
         headerList,
         headerKeyList,
         headerRowCount,
@@ -233,8 +241,8 @@ Grid.defaultProps = {
   filterable: true,
   height: 500,
   onChange: null,
-  overscanColumnCount: 2,
-  overscanRowCount: 2,
+  overscanColumnCount: 5,
+  overscanRowCount: 5,
   selectable: false,
   sortable: true,
   stickyHeaderList: [[]],

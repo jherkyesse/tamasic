@@ -37,7 +37,8 @@ export function transformGridData(
         acc.push({
           ...(changeIndex === 0 ? candidateMapData : {}),
           ...transformMapToGrid(change),
-          row: changes.length - changeIndex,
+          // row: changes.length - changeIndex,
+          row: changeIndex === 0 ? changes.length : 0,
           order: {
             value: changeIndex === 0 ? index + 1 : '',
           },

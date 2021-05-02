@@ -7,7 +7,7 @@ const defaultClassName =
 type InputProps = {
   className: string;
   onChange: Function;
-  onKeyDown: () => void;
+  onKeyDown: (event: React.KeyboardEvent<HTMLInputElement>) => void;
   onMouseDown: () => void;
   placeholder: string;
   value: string;

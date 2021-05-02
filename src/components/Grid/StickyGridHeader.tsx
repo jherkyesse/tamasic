@@ -1,5 +1,5 @@
 import React, { useContext } from 'react';
-import { Grid, CellMeasurer } from 'react-virtualized';
+import { Grid } from 'react-virtualized';
 import {
   FcAlphabeticalSortingAz,
   FcAlphabeticalSortingZa,
@@ -88,7 +88,7 @@ function StickyGridHeader() {
         className={defaultHeaderClassName}
         style={{
           ...style,
-          background: background || '#ececec',
+          background: background,
           color,
           width: width || style.width,
           height: height ?? style.height,

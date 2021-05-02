@@ -13,6 +13,7 @@ export type GridCellProps = {
   top?: number;
   type?: string;
   unfilterable?: boolean;
+  unmodifiable?: boolean;
   unsortable?: boolean;
   value?: string | number | boolean;
   width?: number;
@@ -21,6 +22,7 @@ export type GridCellProps = {
 export type GridDataProps = {
   index: number;
   order?: { value: number | string };
+  row?: number;
 };
 
 export type CellRendererProps = {

@@ -1,4 +1,4 @@
-import { createContext } from 'react';
+import React, { createContext } from 'react';
 import { CellMeasurerCacheInterface } from 'react-virtualized';
 import { GridCellProps, GridDataProps } from './type';
 
@@ -8,13 +8,14 @@ type GridContextProps = {
   columnKeyList: Array<string>;
   columnPropsList: Array<GridCellProps>;
   columnWidthList: Array<number>;
-  data?: Array<GridDataProps>;
+  data: Array<GridDataProps>;
   filterable: boolean;
   filterList: Array<string>;
   filterData: Array<GridDataProps>;
-  getColumnWidth?: ({ index }: { index: number }) => void;
-  getHeaderRowWidth?: ({ index }: { index: number }) => void;
-  getStickyColumnWidth?: ({ index }: { index: number }) => void;
+  getColumnWidth: ({ index }: { index: number }) => void;
+  getHeaderRowWidth: ({ index }: { index: number }) => void;
+  getStickyColumnWidth: ({ index }: { index: number }) => void;
+  getStickyRowWidth: ({ index }: { index: number }) => void;
   headerList: Array<Array<GridCellProps>>;
   headerKeyList: Array<Array<string>>;
   headerRowCount: number;
@@ -28,8 +29,8 @@ type GridContextProps = {
   rowCount: number;
   selectable?: boolean;
   setColumnWidthList: Function;
-  setIsSortAsc: (isSortAsc: boolean) => void;
-  setSortKey: (sortKey?: string) => void;
+  setIsSortAsc: React.Dispatch<React.SetStateAction<boolean>>;
+  setSortKey: React.Dispatch<React.SetStateAction<string>>;
   sortable?: boolean;
   sortKey?: string;
   stickyColumnCount: number;

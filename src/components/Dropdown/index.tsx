@@ -82,14 +82,14 @@ function Dropdown({
   const onFocus = () => setIsOpenDropdown(true);
   const onBlur = () => setIsOpenDropdown(false);
 
-  const onKeyUp = (e) => {
+  const onKeyUp = (e: React.KeyboardEvent<HTMLElement>) => {
     e.preventDefault();
     e.stopPropagation();
     setScrollToIndex(
       scrollToIndex > 0 ? scrollToIndex - 1 : filterOptions.length - 1,
     );
   };
-  const onKeyDown = (e) => {
+  const onKeyDown = (e: React.KeyboardEvent<HTMLElement>) => {
     e.preventDefault();
     e.stopPropagation();
     setScrollToIndex(
@@ -104,7 +104,7 @@ function Dropdown({
     setSearchInputValue(label);
     onBlur();
   };
-  const onInputKeyDown = (e) => {
+  const onInputKeyDown = (e: React.KeyboardEvent<HTMLElement>) => {
     const { code } = e;
     const onKeyDownMap = {
       ArrowUp: onKeyUp,
@@ -160,7 +160,7 @@ function Dropdown({
       </CellMeasurer>
     );
   };
-  const outsideClickHandler = (e: MouseEvent) => {
+  const outsideClickHandler = (e: React.MouseEvent<HTMLElement, MouseEvent>) => {
     if (
       containerRef &&
       containerRef.current &&
