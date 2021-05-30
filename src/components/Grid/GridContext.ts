@@ -1,6 +1,6 @@
 import React, { createContext } from 'react';
-import { CellMeasurerCacheInterface } from 'react-virtualized';
-import { GridCellProps, GridDataProps } from './type';
+import { CellMeasurerCacheInterface } from 'react-virtualized/dist/es/CellMeasurer';
+import { GridCellProps, GridDataProps } from './index.d';
 
 type GridContextProps = {
   cache?: CellMeasurerCacheInterface;
@@ -11,15 +11,16 @@ type GridContextProps = {
   data: Array<GridDataProps>;
   filterable: boolean;
   filterList: Array<string>;
-  filterData: Array<GridDataProps>;
+  filteredData: Array<GridDataProps>;
   getColumnWidth: ({ index }: { index: number }) => void;
   getHeaderRowWidth: ({ index }: { index: number }) => void;
+  getRowHeight: ({ index }: { index: number }) => void;
   getStickyColumnWidth: ({ index }: { index: number }) => void;
   getStickyRowWidth: ({ index }: { index: number }) => void;
   headerList: Array<Array<GridCellProps>>;
   headerKeyList: Array<Array<string>>;
   headerRowCount: number;
-  height?: number;
+  height: number;
   isSortAsc?: boolean;
   onChange?: Function;
   onChangeFilterList?: (value: string, index: number) => void;

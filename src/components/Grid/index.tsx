@@ -1,16 +1,16 @@
 import React, { useCallback, useState, useMemo } from 'react';
 import PropTypes from 'prop-types';
-import { ScrollSync, AutoSizer, CellMeasurerCache } from 'react-virtualized';
+import { ScrollSync, AutoSizer } from 'react-virtualized';
+import { mapRow } from 'utils/helpers';
 import { GridProvider } from './GridContext';
 import StickyGridHeader from './StickyGridHeader';
 import StickyGridBody from './StickyGridBody';
 import GridHeader from './GridHeader';
 import GridBody from './GridBody';
-import { cellHeight, columnWidth } from './config';
-import { GridCellProps, GridDataProps } from './type';
+import { cellHeight } from './config';
+import { GridCellProps, GridDataProps } from './index.d';
 
-const defaultGridClassName =
-  'w-full flex flex-nowrap border border-gray-300 overflow-hidden';
+const defaultGridClassName = 'w-full flex flex-nowrap border border-gray-300 overflow-hidden';
 
 type GridProps = {
   data: Array<GridDataProps>;
@@ -54,43 +54,39 @@ function Grid({
   const stickyWidth = useMemo(
     () =>
       stickyHeaderList[stickyHeaderList.length - 1].reduce(
-        (acc: number, cur: { width?: number }) =>
-          (acc ?? 100) + (cur.width ?? 100),
+        (acc: number, cur: { width?: number }) => (acc ?? 100) + (cur.width ?? 100),
         0,
       ),
     [stickyHeaderList],
   );
-  const allColumnKeyList = useMemo(
-    () => stickyColumnKeyList.concat(columnKeyList),
-    [columnKeyList, stickyColumnKeyList],
-  );
+  const allColumnKeyList = useMemo(() => stickyColumnKeyList.concat(columnKeyList), [
+    columnKeyList,
+    stickyColumnKeyList,
+  ]);
   const { allColumnPropsList, allColumnPropsMap } = useMemo(() => {
     const allColumnPropsList = stickyColumnPropsList.concat(columnPropsList);
-    const allColumnPropsMap = allColumnPropsList.reduce(
-      (acc: object, cur: GridCellProps) => {
-        acc[cur.key!] = cur;
-        return acc;
-      },
-      {},
-    );
+    const allColumnPropsMap = allColumnPropsList.reduce((acc: { [key: string]: any }, cur: GridCellProps) => {
+      acc[cur.key!] = cur;
+      return acc;
+    }, {});
     return { allColumnPropsList, allColumnPropsMap };
   }, [columnPropsList, stickyColumnPropsList]);
   const readOnly = !onChange;
-  const [filterList, setFilterList] = useState(
-    new Array(allColumnKeyList.length).fill(''),
-  );
+  const [filterList, setFilterList] = useState(new Array(allColumnKeyList.length).fill(''));
   const [isSortAsc, setIsSortAsc] = useState(false);
   const [sortKey, setSortKey] = useState('');
 
-  const filterData = useMemo(() => {
-    const filterData = data.reduce((acc: Array<object>, item: object) => {
+  const multiLineColumnKey = useMemo(
+    () => allColumnPropsList.find((allColumnProps) => allColumnProps.type === 'multiline')?.key,
+    [],
+  );
+
+  const filteredData = useMemo(() => {
+    const filteredData = data.reduce((acc: Array<{ [key: string]: any }>, item: { [key: string]: any }) => {
       const filterKey = filterList.every(
         (filter: string, index: number) =>
           !filter ||
-          (
-            item[allColumnKeyList[index]]?.changeValue ??
-            (item[allColumnKeyList[index]]?.value || '').toString()
-          )
+          (item[allColumnKeyList[index]]?.changeValue ?? (item[allColumnKeyList[index]]?.value || '').toString())
             .toLowerCase()
             .includes(filter.toLowerCase()),
       );
@@ -99,29 +95,26 @@ function Grid({
     }, []);
     if (sortKey) {
       const isNumber = allColumnPropsMap[sortKey]?.type === 'number';
-      if (isNumber) {
-        filterData.sort((a, b) =>
+      const isBoolean = allColumnPropsMap[sortKey]?.type === 'checkbox';
+      if (isNumber || isBoolean) {
+        filteredData.sort((a: { [key: string]: any }, b: { [key: string]: any }) =>
           isSortAsc
-            ? (a[sortKey]?.value || 0) - (b[sortKey]?.value || 0)
-            : (b[sortKey]?.value || 0) - (a[sortKey]?.value || 0),
+            ? +((a[sortKey]?.changeValue ?? a[sortKey]?.value) || 0) -
+              +((b[sortKey]?.changeValue ?? b[sortKey]?.value) || 0)
+            : +((b[sortKey]?.changeValue ?? b[sortKey]?.value) || 0) -
+              +((a[sortKey]?.changeValue ?? a[sortKey]?.value) || 0),
         );
       } else {
-        filterData.sort((a, b) =>
+        filteredData.sort((a: { [key: string]: any }, b: { [key: string]: any }) =>
           isSortAsc
             ? (a[sortKey]?.value || '').localeCompare(b[sortKey]?.value || '')
             : (b[sortKey]?.value || '').localeCompare(a[sortKey]?.value || ''),
         );
       }
     }
-    return filterData;
-  }, [
-    data,
-    sortKey,
-    filterList,
-    allColumnKeyList,
-    allColumnPropsMap,
-    isSortAsc,
-  ]);
+
+    return mapRow(filteredData);
+  }, [data, sortKey, filterList, allColumnKeyList, allColumnPropsMap, isSortAsc]);
 
   const onChangeFilterList = (value: string, columnIndex: number) => {
     if (!setFilterList) return;
@@ -129,17 +122,20 @@ function Grid({
     newData[columnIndex] = value;
     setFilterList(newData);
   };
-  const getColumnWidth = useCallback(
-    ({ index }: { index: number }) => columnPropsList[index].width ?? 100,
-    [columnPropsList],
-  );
+  const getColumnWidth = useCallback(({ index }: { index: number }) => (columnPropsList[index] || {}).width ?? 100, [
+    columnPropsList,
+  ]);
   const getStickyColumnWidth = useCallback(
-    ({ index }: { index: number }) => stickyColumnPropsList[index].width ?? 100,
+    ({ index }: { index: number }) => (stickyColumnPropsList[index] || {}).width ?? 100,
     [stickyColumnPropsList],
   );
   const getStickyRowWidth = useCallback(
-    ({ index }: { index: number }) => (filterData[index].row ?? 1) * cellHeight,
-    [filterData],
+    ({ index }: { index: number }) => ((filteredData[index] || {}).row ?? 1) * cellHeight,
+    [filteredData],
+  );
+  const getRowHeight = useCallback(
+    ({ index }: { index: number }) => ((filteredData[index] || {}).multiRow ?? 1) * cellHeight,
+    [filteredData],
   );
   return (
     <GridProvider
@@ -157,8 +153,9 @@ function Grid({
         data,
         filterable,
         filterList,
-        filterData,
+        filteredData,
         getColumnWidth,
+        getRowHeight,
         getStickyColumnWidth,
         getStickyRowWidth,
         headerList,
@@ -196,17 +193,13 @@ function Grid({
               </div>
               <AutoSizer disableHeight>
                 {({ width }) => {
-                  if (!width) return null; // first render will return 0 and store cache;
+                  /** first render will return 0 and store cache */
+                  if (!width) return null;
                   const bodyWidth = width - stickyWidth;
                   return (
                     <>
                       <GridHeader width={bodyWidth} scrollLeft={scrollLeft} />
-                      <GridBody
-                        width={bodyWidth}
-                        onScroll={onScroll}
-                        scrollLeft={scrollLeft}
-                        scrollTop={scrollTop}
-                      />
+                      <GridBody width={bodyWidth} onScroll={onScroll} scrollLeft={scrollLeft} scrollTop={scrollTop} />
                     </>
                   );
                 }}
@@ -222,10 +215,8 @@ function Grid({
 Grid.propTypes = {
   data: PropTypes.arrayOf(PropTypes.shape({})),
   filterable: PropTypes.bool,
-  headerList: PropTypes.arrayOf(PropTypes.arrayOf(PropTypes.shape({})))
-    .isRequired,
-  headerKeyList: PropTypes.arrayOf(PropTypes.arrayOf(PropTypes.string))
-    .isRequired,
+  headerList: PropTypes.arrayOf(PropTypes.arrayOf(PropTypes.shape({}))).isRequired,
+  headerKeyList: PropTypes.arrayOf(PropTypes.arrayOf(PropTypes.string)).isRequired,
   height: PropTypes.number,
   onChange: PropTypes.func,
   overscanColumnCount: PropTypes.number,
@@ -241,8 +232,8 @@ Grid.defaultProps = {
   filterable: true,
   height: 500,
   onChange: null,
-  overscanColumnCount: 5,
-  overscanRowCount: 5,
+  overscanColumnCount: 0,
+  overscanRowCount: 0,
   selectable: false,
   sortable: true,
   stickyHeaderList: [[]],

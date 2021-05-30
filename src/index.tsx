@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { render } from 'react-dom';
 import { useLocalStorage } from 'react-use';
 import {
-  Badge,
+  // Badge,
   Button,
   Col,
   Container,
@@ -10,7 +10,7 @@ import {
   Dropdown,
   Grid,
   Input,
-  Padding,
+  // Padding,
   Row,
   Table,
   Textarea,
@@ -34,7 +34,7 @@ export interface Props {
   name?: string;
 }
 
-function App({ name }: Props) {
+function App() {
   const [theme, setTheme] = useLocalStorage('theme', 'light', {
     raw: true,
   });
@@ -50,13 +50,67 @@ function App({ name }: Props) {
     <Container>
       <Row>
         <Col>
-          <Badge label="Start" />
+          {/* <Badge label="Start" /> */}
+          <Button onClick={toggleTheme} label={theme} />
+        </Col>
+      </Row>
+      <Row>
+        <Col>
+          {/* <Badge label="Start" /> */}
+          <Button onClick={toggleTheme} label={theme} />
+        </Col>
+      </Row>
+      <Row>
+        <Col>
+          {/* <Badge label="Start" /> */}
+          <Button onClick={toggleTheme} label={theme} />
+        </Col>
+      </Row>
+      <Row>
+        <Col>
+          {/* <Badge label="Start" /> */}
+          <Button onClick={toggleTheme} label={theme} />
+        </Col>
+      </Row>
+      <Row>
+        <Col>
+          {/* <Badge label="Start" /> */}
+          <Button onClick={toggleTheme} label={theme} />
+        </Col>
+      </Row>
+      <Row>
+        <Col>
+          {/* <Badge label="Start" /> */}
+          <Button onClick={toggleTheme} label={theme} />
+        </Col>
+      </Row>
+      <Row>
+        <Col>
+          {/* <Badge label="Start" /> */}
+          <Button onClick={toggleTheme} label={theme} />
+        </Col>
+      </Row>
+      <Row>
+        <Col>
+          {/* <Badge label="Start" /> */}
+          <Button onClick={toggleTheme} label={theme} />
+        </Col>
+      </Row>
+      <Row>
+        <Col>
+          {/* <Badge label="Start" /> */}
+          <Button onClick={toggleTheme} label={theme} />
+        </Col>
+      </Row>
+      <Row>
+        <Col>
+          {/* <Badge label="Start" /> */}
           <Button onClick={toggleTheme} label={theme} />
         </Col>
       </Row>
       <Divider />
-      <Row>
-        <Col>
+      {/* <Row> */}
+        {/* <Col>
           <Input value={user} onChange={setUser} placeholder="enter user..." />
           <Input
             value={user}
@@ -109,7 +163,7 @@ function App({ name }: Props) {
           </Button.Group>
         </>
       </Padding>
-      <Divider />
+      <Divider /> */}
       {/* <Table
         headerList={headerList}
         headerKeyList={headerKeyList}
@@ -124,7 +178,43 @@ function App({ name }: Props) {
         headerList={gridHeaderList}
         headerKeyList={gridHeaderKeyList}
       />
-      <Badge label="moe moe q" />
+      <Row>
+        <Col>
+          {/* <Badge label="Start" /> */}
+          <Button onClick={toggleTheme} label={theme} />
+        </Col>
+      </Row>
+      <Row>
+        <Col>
+          {/* <Badge label="Start" /> */}
+          <Button onClick={toggleTheme} label={theme} />
+        </Col>
+      </Row>
+      <Row>
+        <Col>
+          {/* <Badge label="Start" /> */}
+          <Button onClick={toggleTheme} label={theme} />
+        </Col>
+      </Row>
+      <Row>
+        <Col>
+          {/* <Badge label="Start" /> */}
+          <Button onClick={toggleTheme} label={theme} />
+        </Col>
+      </Row>
+      <Row>
+        <Col>
+          {/* <Badge label="Start" /> */}
+          <Button onClick={toggleTheme} label={theme} />
+        </Col>
+      </Row>
+      <Row>
+        <Col>
+          {/* <Badge label="Start" /> */}
+          <Button onClick={toggleTheme} label={theme} />
+        </Col>
+      </Row>
+      {/* <Badge label="moe moe q" />
       <Divider />
       <Badge label="moe moe q" />
       <Divider />
@@ -141,7 +231,7 @@ function App({ name }: Props) {
         value={option}
         onChange={setOption}
         placeholder="Select a vtuber..."
-      />
+      /> */}
     </Container>
   );
 }

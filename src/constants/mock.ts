@@ -29,7 +29,6 @@ export const headerList = [
       sticky: true,
       width: 40,
       type: 'number',
-      textAlign: 'center',
     },
     {
       label: 'Select',
@@ -151,7 +150,6 @@ export const stickyHeaderList = [
       left: 0,
       top: 0,
       type: 'number',
-      textAlign: 'center',
     },
     {
       label: 'Select',
@@ -187,7 +185,6 @@ export const stickyHeaderList = [
       left: 0,
       top: 0,
       type: 'number',
-      textAlign: 'center',
     },
     {
       label: 'Select',
@@ -396,6 +393,13 @@ export const gridHeaderList = [
     {
       label: 'Option2',
       key: 'option2',
+      type: 'dropdown',
+      dropdownOptions: [
+        { label: 'BNT', value: 'bnt' },
+        { label: 'AZ', value: 'az' },
+        { label: 'Moderna', value: 'moderna' },
+        { label: 'Other...', value: 'other' },
+      ],
     },
     {
       label: 'Option3',
@@ -534,7 +538,7 @@ export const prevGridData = [
       {
         adam: 'ADAMADAM)_ADAM',
         option1: 'Options1',
-        option2: 'Options2',
+        option2: 'AZ',
         option3: 'Options3',
         option4: 'Options4',
         option572: 'Options572',
@@ -561,7 +565,7 @@ export const prevGridData = [
       {
         adam: 'ADAMADAM)_ADAM',
         option1: 'Options1',
-        option2: 'Options2',
+        option2: 'AZ',
         option3: 'Options3',
         option4: 'Options4',
         option572: 'Options572',
@@ -580,7 +584,7 @@ export const prevGridData = [
       {
         adam: 'ADAMADAM)_ADAM',
         option1: 'Options1',
-        option2: 'Options2',
+        option2: 'AZ',
         option3: 'Options3',
         option4: 'Options4',
         option572: 'Options572',
@@ -607,7 +611,7 @@ export const prevGridData = [
       {
         adam: 'ADAMADAM)_ADAM',
         option1: 'Options1',
-        option2: 'Options2',
+        option2: 'AZ',
         option3: 'Options3',
         option4: 'Options4',
         option572: 'Options572',
@@ -626,7 +630,7 @@ export const prevGridData = [
       {
         adam: 'ADAMADAM)_ADAM',
         option1: 'Options1',
-        option2: 'Options2',
+        option2: 'AZ',
         option3: 'Options3',
         option4: 'Options4',
         option572: 'Options572',
@@ -645,7 +649,7 @@ export const prevGridData = [
       {
         adam: 'ADAMADAM)_ADAM',
         option1: 'Options1',
-        option2: 'Options2',
+        option2: 'bnt',
         option3: 'Options3',
         option4: 'Options4',
         option572: 'Options572',
@@ -664,7 +668,7 @@ export const prevGridData = [
       {
         adam: 'ADAMADAM)_ADAM',
         option1: 'Options1',
-        option2: 'Options2',
+        option2: 'bnt',
         option3: 'Options3',
         option4: 'Options4',
         option572: 'Options572',
@@ -691,7 +695,7 @@ export const prevGridData = [
       {
         adam: 'ADAMADAM)_ADAM',
         option1: 'Options1',
-        option2: 'Options2',
+        option2: 'bnt',
         option3: 'Options3',
         option4: 'Options4',
         option572: 'Options572',
@@ -718,7 +722,7 @@ export const prevGridData = [
       {
         adam: 'ADAMADAM)_ADAM',
         option1: 'Options1',
-        option2: 'Options2',
+        option2: 'moderna',
         option3: 'Options3',
         option4: 'Options4',
         option572: 'Options572',
@@ -745,7 +749,7 @@ export const prevGridData = [
       {
         adam: 'ADAMADAM)_ADAM',
         option1: 'Options1',
-        option2: 'Options2',
+        option2: 'moderna',
         option3: 'Options3',
         option4: 'Options4',
         option572: 'Options572',
@@ -764,7 +768,7 @@ export const prevGridData = [
       {
         adam: 'ADAMADAM)_ADAM',
         option1: 'Options1',
-        option2: 'Options2',
+        option2: 'moderna',
         option3: 'Options3',
         option4: 'Options4',
         option572: 'Options572',

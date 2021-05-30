@@ -1,4 +1,4 @@
-import React, { useContext } from 'react';
+import React, { useContext, memo } from 'react';
 import { Grid } from 'react-virtualized';
 import {
   FcAlphabeticalSortingAz,
@@ -6,19 +6,23 @@ import {
 } from 'react-icons/fc';
 import GridContext from './GridContext';
 import { cellHeight, defaultHeaderClassName } from './config';
-import { CellRendererProps } from './type';
+import { CellRendererProps } from './index.d';
 import FilterInput from './FilterInput';
+import Checkbox from '../Checkbox';
 
 const defaultStickyGridHeaderClassName =
   'border-b border-r border-gray-300 outline-none !overflow-x-hidden select-none';
 
 function StickyGridHeader() {
   const {
+    data,
+    filteredData,
     filterList,
     filterable,
     getStickyColumnWidth,
     headerRowCount,
     isSortAsc,
+    onChange,
     onChangeFilterList,
     setIsSortAsc,
     setSortKey,
@@ -59,28 +63,53 @@ function StickyGridHeader() {
         </div>
       );
     }
-
     const {
       background,
       color,
       label,
       left,
       key,
-      top,
       textAlign,
+      top,
+      type = 'label',
       row,
       unsortable,
       width = 100,
     } = (stickyHeaderList[rowIndex] || {})[columnIndex] || {};
+    if (row === 0) return null;
     const height = (row || 1) * cellHeight;
     const isSorted = sortKey === key;
     const isColumnKeyRow = rowIndex === stickyHeaderRowCount - 1;
     const onClick = () => {
       if (unsortable || !isColumnKeyRow) return;
       setIsSortAsc(!isSortAsc);
-      if (sortKey !== key) setSortKey(key);
+      if (sortKey !== key) setSortKey(key!);
     };
+    const Select = () => {
+      const isUnchecked = !!filteredData.find((item) => !item[key!]?.changeValue);
+      const onChecked = (changeValue?: boolean) => {
+        const nextData = [...data];
+        filteredData.forEach((item) => {
+          const { index } = item;
+          nextData[index][key!] = {
+            ...nextData[index][key!],
+            changeValue,
+          };
+        });
 
+        onChange && onChange(nextData);
+      };
+      return <Checkbox onChange={onChecked} checked={!isUnchecked} />;
+    };
+    const Label = () => {
+      return <div>{label}</div>;
+    };
+    const renderMap = {
+      checkbox: Select,
+      label: Label,
+      number: Label,
+    };
+    const Renderer = memo(renderMap[type]);
     return (
       <div
         key={cellRendererKey}
@@ -99,7 +128,7 @@ function StickyGridHeader() {
         }}
         onClick={onClick}
       >
-        <div>{label}</div>
+        <Renderer />
         {isSorted &&
           (isSortAsc ? (
             <FcAlphabeticalSortingAz size={20} className="mx-1" />

@@ -1,7 +1,8 @@
-import React, { useContext } from 'react';
+import React, { useContext, memo } from 'react';
 import { Grid } from 'react-virtualized';
+import Checkbox from '../Checkbox';
 import GridContext from './GridContext';
-import { CellRendererProps } from './type';
+import { CellRendererProps } from './index.d';
 import { cellHeight } from './config';
 
 const defaultStickyGridClassName = 'outline-none !overflow-hidden';
@@ -15,7 +16,7 @@ type StickyGridBodyProps = {
 function StickyGridBody({ scrollTop }: StickyGridBodyProps) {
   const {
     data = [],
-    filterData = [],
+    filteredData = [],
     getStickyColumnWidth,
     getStickyRowWidth,
     height,
@@ -26,7 +27,7 @@ function StickyGridBody({ scrollTop }: StickyGridBodyProps) {
     stickyColumnKeyList = [],
     stickyWidth,
   } = useContext(GridContext);
-  const rowCount = filterData.length;
+  const rowCount = filteredData.length;
   const cellRenderer = ({
     key,
     columnIndex,
@@ -35,34 +36,41 @@ function StickyGridBody({ scrollTop }: StickyGridBodyProps) {
   }: CellRendererProps) => {
     const headerKey = stickyColumnKeyList[columnIndex];
 
-    const { row = 1 } = filterData[rowIndex] || {};
+    const { row = 1 } = filteredData[rowIndex] || {};
     if (row === 0) return null;
-    const { value, changeValue } =
-      (filterData[rowIndex] || {})[headerKey] || {};
-    const { width = 100, type = 'label', textAlign } =
+    const { changeValue, isDisabled, value } =
+      (filteredData[rowIndex] || {})[headerKey] || {};
+    const { width = 100, label, type = 'label', textAlign } =
       stickyColumnPropsList[columnIndex] || {};
 
-    const Checkbox = (defaultValue: boolean) => {
-      const onChecked = () => {
+    const Select = () => {
+      const onChecked = (changeValue?: boolean) => {
         const nextData = [...data];
-        const { index } = filterData[rowIndex] || {};
+        const { index } = filteredData[rowIndex] || {};
         nextData[index][headerKey] = {
           ...nextData[index][headerKey],
-          changeValue: !defaultValue,
+          changeValue,
         };
-
         onChange && onChange(nextData);
       };
       return (
-        <input type="checkbox" onChange={onChecked} checked={changeValue} />
+        <div className="w-full flex justify-center">
+          <Checkbox disabled={isDisabled} onChange={onChecked} checked={changeValue} />
+        </div>
       );
     };
-    const renderMap = {
-      checkbox: Checkbox,
+    const Label = () => {
+      return <div className="whitespace-wrap break-words w-full">{value}</div>;
     };
+    const renderMap = {
+      checkbox: Select,
+      label: Label,
+      number: Label,
+    };
+    const Renderer = memo(renderMap[type]);
     return (
       <div
-        key={`${type}-${key}`}
+        key={key}
         className={defaultBodyClassName}
         style={{
           ...style,
@@ -72,11 +80,7 @@ function StickyGridBody({ scrollTop }: StickyGridBodyProps) {
         }}
         role="presentation"
       >
-        <div className="whitespace-wrap break-words w-full">
-          {((renderMap[type] && renderMap[type](changeValue ?? value)) ||
-            changeValue) ??
-            value}
-        </div>
+        <Renderer />
       </div>
     );
   };

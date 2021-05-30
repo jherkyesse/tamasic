@@ -1,18 +1,7 @@
 import { CellMeasurerCache } from 'react-virtualized';
 
-export const tableClassName =
-  'select-none table-fixed border-0 outline-none border-spacing-0 border-separate cursor-cell';
-export const tableTheadClassName = 'border-b-1 border-gray-300';
-export const tableTheadTrClassName = 'last:border-r-0';
-export const tableTheadThClassName =
-  'sticky h-24px top-0 border-b border-r p-1 bg-gray-300 z-40';
-export const tableTbodyClassName = 'w-full';
-export const tableTbodyTrClassName = 'last:border-r-0';
-export const tableTbodyTdClassName =
-  'relative border-r border-b align-baseline whitespace-nowrap px-5px py-3px leading-5 z-0';
-
 export const defaultHeaderClassName =
-  'border-b border-r border-gray-300 dark:border-gray-400 bg-gray-100 dark:bg-gray-600 text-black dark:text-white flex justify-center items-center text-xs';
+  'border-b border-r border-gray-300 flex justify-center items-center text-xs !overflow-hidden';
 
 export const stickyClassName = 'sticky left-0 bg-white z-50';
 

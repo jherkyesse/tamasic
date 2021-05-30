@@ -1,35 +1,30 @@
-import React, {
-  useContext,
-  useEffect,
-  useState,
-  useRef,
-  useCallback,
-  useMemo,
-  RefObject,
-  useLayoutEffect,
-} from 'react';
+import React, { useContext, useEffect, useState, useRef, useCallback, useMemo, useLayoutEffect, memo } from 'react';
 import { findDOMNode } from 'react-dom';
+import PropTypes from 'prop-types';
+import { FcCheckmark } from 'react-icons/fc';
 import { Grid, OnScrollParams } from 'react-virtualized';
 import PerfectScrollbar from 'perfect-scrollbar';
-// import { IoMdReturnLeft } from 'react-icons/io';
-// import debounce from 'lodash/debounce';
-// import Checkbox from '../Checkbox';
+import Checkbox from '../Checkbox';
 import GridContext from './GridContext';
 import { perfectScrollbarConfig, cellHeight } from './config';
 
-const defaultGridBodyClassName = 'outline-none select-none cursor-cell';
+const defaultGridBodyClassName = 'outline-none select-none';
 const defaultBodyClassName =
-  'border-r border-b border-gray-300 dark:border-gray-400 text-xs text-black dark:text-gray-200 break-words outline-none p-1';
-const cellStateStyleMap = {
-  DELETE: '!text-red',
-  MODIFY: '!text-blue-800 font-black',
+  'border-r border-b border-gray-300 dark:border-gray-400 bg-white dark:bg-black text-xs text-black dark:text-gray-200 break-words outline-none cursor-cell';
+const defaultDropdownClassName =
+  'h-24px w-full flex flex-nowrap p-1 text-xs border-b border-red-300 dark:border-gray-700 hover:shadow-neumorph-pressed cursor-pointer';
+const labelStateClassNameMap = {
+  DELETE: 'bg-opacity-60 bg-red-100',
+  MODIFY: 'bg-opacity-60 bg-orange-100 !text-red-900 font-bold',
 };
-const unmodifiableClassName = ['', 'text-gray-400'];
+const activeDropdownClassNameMap = {
+  true: 'bg-opacity-60 bg-orange-100 !text-red-900 font-bold',
+  false: '',
+}
+const dropdownOverflowClassName = ['-mt-1px', 'transform -translate-y-full'];
 const selectedClassName = ['', 'bg-gray-100 dark:bg-gray-600'];
-const activeClassName = [
-  '',
-  'border-t border-l !border-red-700 !w-auto !h-auto z-40',
-];
+const activeClassName = ['', 'border-t border-l !border-red-700 z-40'];
+const editableClassName = ['', '!h-auto'];
 
 type GridBodyProps = {
   width: number;
@@ -39,8 +34,15 @@ type GridBodyProps = {
 };
 
 type GridBodyStateProps = {
+  customDropdownValue?: string;
+  dropdownLeft?: number;
+  dropdownOptions?: { label?: string; value?: string }[];
+  dropdownTop?: number;
+  dropdownValue?: string | null;
+  dropdownWidth?: number | null;
   fromX?: number;
   fromY?: number;
+  isDropdownOverflow: boolean;
   isEdited: boolean;
   isSelected: boolean;
   lockedMove: boolean;
@@ -48,84 +50,174 @@ type GridBodyStateProps = {
   toY?: number;
 };
 
-type EditorProps = {
-  onBlur?: (value?: string) => void;
-  open: boolean;
+const Dropdown = ({
+  className,
+  columnIndex,
+  fromX,
+  fromY,
+  gridBodyRef,
+  gridCellHeight,
+  gridCellWidth,
+  height,
+  options,
+  rowIndex,
+  scrollLeft,
+  scrollTop,
+  updateState,
+  value,
+}: {
+  className?: string;
+  columnIndex: number;
+  fromX?: number;
+  fromY?: number;
+  gridBodyRef?: React.RefObject<HTMLDivElement>;
+  gridCellHeight: number;
+  gridCellWidth: number;
+  height: number;
+  options: { label?: string; value?: string }[];
+  rowIndex: number;
+  scrollLeft: number;
+  scrollTop: number;
+  updateState: Function;
   value?: string;
-};
+}) => {
+  const { label } = options.find((option) => option.value === value) || {};
+  const onMouseDown = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (fromX === columnIndex && fromY === rowIndex) {
+      updateState({
+        dropdownOptions: [],
+        dropdownValue: undefined,
+        dropdownLeft: undefined,
+        dropdownTop: undefined,
+        dropdownWidth: undefined,
+        isSelected: true,
+        fromX: undefined,
+        fromY: undefined,
+        isDropdownOverflow: false,
+      });
+      return;
+    }
+    const gridRef = findDOMNode(gridBodyRef?.current) as Element;
+    const { left: gridRefLeft, top: gridRefTop } = gridRef.getBoundingClientRect();
+    const { left, top } = e.target.getBoundingClientRect();
+    const dropdownLeft = left + scrollLeft - gridRefLeft - 1;
+    const isDropdownOverflow = top - gridRefTop > height / 2;
+    const dropdownTop = top + scrollTop - gridRefTop + +!isDropdownOverflow * gridCellHeight;
+    updateState({
+      customDropdownValue: options.find((option) => option.value === value) ? '' : value || '',
+      dropdownOptions: options,
+      dropdownValue: value,
+      dropdownLeft,
+      dropdownTop,
+      dropdownWidth: gridCellWidth + 1,
+      isSelected: true,
+      fromX: columnIndex,
+      fromY: rowIndex,
+      isDropdownOverflow,
+    });
+  };
 
-const Editor = ({ onBlur, open, value }: EditorProps) => {
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const [editValue, setEditValue] = useState(value);
-  const onChange = (e: React.ChangeEvent<HTMLTextAreaElement>) =>
-    setEditValue(e.target.value || '');
-  const onEditorBlur = () => onBlur && onBlur(editValue);
-  useEffect(() => {
-    setEditValue(value);
-  }, [value]);
-  useLayoutEffect(() => {
-    if (open) textareaRef.current?.focus();
-  }, [open]);
   return (
-    <textarea
-      ref={textareaRef}
-      className={`absolute left-0 top-0 z-80 p-1 bg-blue-100 w-full min-h-full h-auto ${
-        open ? '' : 'hidden'
-      }`}
-      autoFocus={open}
-      value={editValue}
-      onChange={onChange}
-      onBlur={onEditorBlur}
-    />
+    <div
+      role="presentation"
+      className={`flex items-center justify-center p-1 cursor-pointer ${className}`}
+      onMouseDown={onMouseDown}
+    >
+      <span className="flex-1 mr-1 pointer-events-none">{label ?? value}</span>
+      <div className="absolute right-0 bottom-0 p-1px pointer-events-none">
+        <div className="w-5px overflow-hidden">
+          <div className="h-10px bg-black dark:bg-white rotate-45 transform origin-bottom-left"></div>
+        </div>
+      </div>
+    </div>
   );
 };
 
+Dropdown.propTypes = {
+  className: PropTypes.string,
+  height: PropTypes.number.isRequired,
+  options: PropTypes.arrayOf(
+    PropTypes.shape({
+      label: PropTypes.string,
+      value: PropTypes.string,
+    }).isRequired,
+  ),
+  scrollLeft: PropTypes.number.isRequired,
+  scrollTop: PropTypes.number.isRequired,
+  updateState: PropTypes.func.isRequired,
+  value: PropTypes.string,
+};
+
+Dropdown.defaultProps = {
+  className: '',
+  value: '',
+};
+
 function GridBody({ width, scrollLeft, scrollTop, onScroll }: GridBodyProps) {
-  const gridBodyRef = useRef<RefObject<{}>>(null);
-  const clipboardRef = useRef<HTMLTextAreaElement>(null);
+  const gridBodyRef = useRef(null);
+  const editorRef = useRef(null);
+  const clipboardRef = useRef(null);
   const [state, setState] = useState({} as GridBodyStateProps);
-  const { fromX, fromY, isEdited, isSelected, lockedMove, toX, toY } = state;
+  const updateState = (data: {}) => setState({ ...state, ...data });
+  const onChangeCustomDropdownValue = ({ target: { value } }: { target: { value?: string } }) =>
+    updateState({ ...state, customDropdownValue: value });
+  const {
+    customDropdownValue,
+    dropdownLeft,
+    dropdownOptions,
+    dropdownTop,
+    dropdownValue,
+    dropdownWidth,
+    fromX,
+    fromY,
+    isEdited,
+    isSelected,
+    lockedMove,
+    isDropdownOverflow,
+    toX,
+    toY,
+  } = state;
   const {
     columnCount,
     columnKeyList,
     columnPropsList,
     data,
-    filterData,
+    filteredData,
     getColumnWidth,
+    getRowHeight,
     height,
     onChange,
     overscanColumnCount,
     readOnly,
   } = useContext(GridContext);
-  const rowCount = filterData?.length;
-
+  const rowCount = filteredData?.length;
+  console.log('GridBody', data);
   const keyUp = useCallback(() => {
     if (fromY === undefined || fromY === null || fromY === 0) return;
     const newY = fromY! - 1;
-    setState({ ...state, fromY: newY, toX: undefined, toY: newY });
+    updateState({ fromY: newY, toX: undefined, toY: newY });
   }, [fromY, state]);
   const keyDown = useCallback(() => {
-    if (fromY === undefined || fromY === null || fromY === rowCount! - 1)
-      return;
+    if (fromY === undefined || fromY === null || fromY === rowCount! - 1) return;
     const newY = fromY! + 1;
-    setState({ ...state, fromY: newY, toX: undefined, toY: newY });
+    updateState({ fromY: newY, toX: undefined, toY: newY });
   }, [fromY, rowCount, state]);
   const keyLeft = useCallback(() => {
     if (fromX === undefined || fromX === null || fromX === 0) return;
     const newX = fromX - 1;
-    setState({ ...state, fromX: newX, toX: newX, toY: undefined });
+    updateState({ fromX: newX, toX: newX, toY: undefined });
   }, [fromX, state]);
   const keyRight = useCallback(() => {
-    if (fromX === undefined || fromX === null || fromX === columnCount! - 1)
-      return;
+    if (fromX === undefined || fromX === null || fromX === columnCount! - 1) return;
     const newX = fromX + 1;
-    setState({ ...state, fromX: newX, toX: newX, toY: undefined });
+    updateState({ fromX: newX, toX: newX, toY: undefined });
   }, [columnCount, fromX, state]);
   const selectKeyUp = useCallback(
     (ctrlKey: Boolean) => {
       if (toY === 0) return;
-      setState({
-        ...state,
+      updateState({
         toY: ctrlKey ? 0 : (toY ?? fromY)! - 1,
         toX: toX ?? fromX,
         isSelected: false,
@@ -136,8 +228,7 @@ function GridBody({ width, scrollLeft, scrollTop, onScroll }: GridBodyProps) {
   const selectKeyDown = useCallback(
     (ctrlKey: Boolean) => {
       if (toY === rowCount) return;
-      setState({
-        ...state,
+      updateState({
         toY: ctrlKey ? rowCount! - 1 : (toY ?? fromY)! + 1,
         toX: toX ?? fromX,
         isSelected: false,
@@ -147,8 +238,7 @@ function GridBody({ width, scrollLeft, scrollTop, onScroll }: GridBodyProps) {
   );
   const selectKeyLeft = useCallback(
     (ctrlKey: Boolean) => {
-      setState({
-        ...state,
+      updateState({
         toX: ctrlKey ? 0 : (toX ?? fromX)! - 1,
         toY: toY ?? fromY,
         isSelected: false,
@@ -159,8 +249,7 @@ function GridBody({ width, scrollLeft, scrollTop, onScroll }: GridBodyProps) {
   const selectKeyRight = useCallback(
     (ctrlKey: Boolean) => {
       if (toX === columnCount) return;
-      setState({
-        ...state,
+      updateState({
         toX: ctrlKey ? columnCount! - 1 : (toX ?? fromX)! + 1,
         toY: toY ?? fromY,
         isSelected: false,
@@ -178,7 +267,7 @@ function GridBody({ width, scrollLeft, scrollTop, onScroll }: GridBodyProps) {
     }),
     [keyDown, keyLeft, keyRight, keyUp],
   );
-  const moveUpDown = useMemo(
+  const moveUpDown: { ArrowUp: Function; ArrowDown: Function } = useMemo(
     () => ({
       ArrowUp: keyUp,
       ArrowDown: keyDown,
@@ -194,49 +283,56 @@ function GridBody({ width, scrollLeft, scrollTop, onScroll }: GridBodyProps) {
     }),
     [selectKeyDown, selectKeyLeft, selectKeyRight, selectKeyUp],
   );
-  const onCopy = useMemo(
-    () =>
-      readOnly
-        ? null
-        : () => {
-            try {
-              const startX = Math.min(fromX!, toX ?? fromX!);
-              const startY = Math.min(fromY!, toY ?? fromY!);
-              const endX = Math.max(fromX!, toX ?? fromX!);
-              const endY = Math.max(fromY!, toY ?? fromY!);
+  const onBlur = useCallback(
+    ({ changeValue, fromX, fromY }: { changeValue?: string; fromX: number; fromY: number }) => {
+      try {
+        if (!onChange) return;
+        const nextData = [...data];
+        const headerKey = columnKeyList[fromX];
+        const { index } = filteredData[fromY] || {};
 
-              const clippedData: string[][][] = [];
-
-              for (let j = startY; j <= endY; j++) {
-                for (let i = startX; i <= endX; i++) {
-                  const { changeValue = '', value = '', state } =
-                    filterData[j][columnKeyList[i]] || {};
-
-                  if (clippedData[j - startY] === undefined)
-                    clippedData.push([]);
-                  if (clippedData[j - startY][i - startX] === undefined)
-                    clippedData[j - startY].push([]);
-                  clippedData[j - startY][i - startX] =
-                    state === 'DELETE' || state === 'MODIFY'
-                      ? changeValue
-                      : value;
-                }
-              }
-
-              const clipboardTextarea = clipboardRef.current;
-              if (!clipboardTextarea) return;
-              clipboardTextarea.value = clippedData
-                .map((rowData) => rowData.join(`	`))
-                .join('\n');
-              clipboardTextarea.select();
-              clipboardTextarea.setSelectionRange(0, 99999);
-              document.execCommand('copy');
-            } catch (error) {
-              console.warn(error);
-            }
-          },
-    [columnKeyList, filterData, fromX, fromY, readOnly, toX, toY],
+        const { value } = nextData[index][headerKey];
+        nextData[index][headerKey] = {
+          ...nextData[index][headerKey],
+          changeValue,
+          state: changeValue === value ? '' : !changeValue ? 'DELETE' : 'MODIFY',
+        };
+        onChange(nextData);
+      } catch (error) {
+        console.warn(error);
+      }
+    },
+    [columnKeyList, data, filteredData, onChange],
   );
+  const onCopy = useCallback(() => {
+    try {
+      const startX = Math.min(fromX!, toX ?? fromX!);
+      const startY = Math.min(fromY!, toY ?? fromY!);
+      const endX = Math.max(fromX!, toX ?? fromX!);
+      const endY = Math.max(fromY!, toY ?? fromY!);
+
+      const clippedData: string[][][] = [];
+
+      for (let j = startY; j <= endY; j++) {
+        for (let i = startX; i <= endX; i++) {
+          const { changeValue = '', value = '', state } = filteredData[j][columnKeyList[i]] || {};
+
+          if (clippedData[j - startY] === undefined) clippedData.push([]);
+          if (clippedData[j - startY][i - startX] === undefined) clippedData[j - startY].push([]);
+          clippedData[j - startY][i - startX] = state === 'DELETE' || state === 'MODIFY' ? changeValue : value;
+        }
+      }
+
+      const clipboardTextarea = clipboardRef.current;
+      if (!clipboardTextarea) return;
+      clipboardTextarea.value = clippedData.map((rowData) => rowData.join(`	`)).join('\n');
+      clipboardTextarea.select();
+      clipboardTextarea.setSelectionRange(0, 99999);
+      document.execCommand('copy');
+    } catch (error) {
+      console.warn(error);
+    }
+  }, [columnKeyList, filteredData, fromX, fromY, readOnly, toX, toY]);
   const onCut = useMemo(
     () =>
       readOnly
@@ -251,21 +347,16 @@ function GridBody({ width, scrollLeft, scrollTop, onScroll }: GridBodyProps) {
               const nextData = [...data];
               for (let j = startY; j <= endY; j++) {
                 for (let i = startX; i <= endX; i++) {
-                  const { unmodifiable } = columnPropsList[i];
-                  if (unmodifiable) continue;
-                  const { index } = filterData[j] || {};
-                  const { value } = filterData[j][columnKeyList[i]] || {};
+                  const { type = 'label', unmodifiable } = columnPropsList[i];
+                  if (type !== 'label' || unmodifiable) continue;
+                  const { index } = filteredData[j] || {};
+                  const { value } = filteredData[j][columnKeyList[i]] || {};
 
                   const changeValue = '';
                   nextData[index][columnKeyList[i]] = {
                     ...(nextData[index][columnKeyList[i]] || {}),
                     changeValue,
-                    state:
-                      (value ?? '') !== changeValue
-                        ? changeValue === ''
-                          ? 'DELETE'
-                          : 'MODIFY'
-                        : '',
+                    state: (value ?? '') !== changeValue ? (changeValue === '' ? 'DELETE' : 'MODIFY') : '',
                   };
                 }
               }
@@ -274,19 +365,7 @@ function GridBody({ width, scrollLeft, scrollTop, onScroll }: GridBodyProps) {
               console.warn(error);
             }
           },
-    [
-      columnKeyList,
-      columnPropsList,
-      data,
-      filterData,
-      fromX,
-      fromY,
-      onChange,
-      onCopy,
-      readOnly,
-      toX,
-      toY,
-    ],
+    [columnKeyList, columnPropsList, data, filteredData, fromX, fromY, onChange, onCopy, readOnly, toX, toY],
   );
   const onPaste = useMemo(
     () =>
@@ -299,10 +378,7 @@ function GridBody({ width, scrollLeft, scrollTop, onScroll }: GridBodyProps) {
               clipboardTextarea.select();
               clipboardTextarea.setSelectionRange(0, 99999);
               document.execCommand('paste');
-
-              const clipboardData = (clipboardTextarea.value || '')
-                .split('\n')
-                .map((text) => text.split(`	`));
+              const clipboardData = (clipboardTextarea.value || '').split('\n').map((text: string) => text.split(`	`));
 
               const startX = Math.min(fromX!, toX ?? fromX!);
               const startY = Math.min(fromY!, toY ?? fromY!);
@@ -311,27 +387,17 @@ function GridBody({ width, scrollLeft, scrollTop, onScroll }: GridBodyProps) {
               const nextData = [...data];
               for (let j = startY; j <= endY; j++) {
                 for (let i = startX; i <= endX; i++) {
-                  if (
-                    i - startX < clipboardData[0].length &&
-                    j - startY < clipboardData.length
-                  ) {
-                    const { index } = filterData[j];
-                    const { value } = filterData[j][columnKeyList[i]];
-                    const { type, unmodifiable } = columnPropsList[i];
-                    if (type || unmodifiable) continue;
-                    const changeValue = (clipboardData[j - startY] || {})[
-                      i - startX
-                    ];
+                  if (i - startX < clipboardData[0].length && j - startY < clipboardData.length) {
+                    const { index } = filteredData[j];
+                    const { value } = filteredData[j][columnKeyList[i]];
+                    const { type = 'label', unmodifiable } = columnPropsList[i];
+                    if (type !== 'label' || unmodifiable) continue;
+                    const changeValue = (clipboardData[j - startY] || {})[i - startX];
                     if (typeof changeValue !== 'string') continue;
                     nextData[index][columnKeyList[i]] = {
                       ...nextData[index][columnKeyList[i]],
                       changeValue,
-                      state:
-                        (value || '') !== changeValue
-                          ? changeValue === ''
-                            ? 'DELETE'
-                            : 'MODIFY'
-                          : '',
+                      state: (value || '') !== changeValue ? (changeValue === '' ? 'DELETE' : 'MODIFY') : '',
                     };
                   }
                 }
@@ -341,19 +407,15 @@ function GridBody({ width, scrollLeft, scrollTop, onScroll }: GridBodyProps) {
               console.warn(error);
             }
           },
-    [
-      columnKeyList,
-      columnPropsList,
-      data,
-      filterData,
-      fromX,
-      fromY,
-      onChange,
-      readOnly,
-      toX,
-      toY,
-    ],
+    [columnKeyList, columnPropsList, data, filteredData, fromX, fromY, onChange, readOnly, toX, toY],
   );
+  const onPastePlainText = (e: {
+    preventDefault: () => void;
+    clipboardData: { getData: (arg0: string) => string };
+  }) => {
+    e.preventDefault();
+    document.execCommand('insertText', false, e.clipboardData.getData('text/plain'));
+  };
   const onCtrlKey = useMemo(
     () => ({
       c: onCopy,
@@ -363,20 +425,16 @@ function GridBody({ width, scrollLeft, scrollTop, onScroll }: GridBodyProps) {
     [onCopy, onCut, onPaste],
   );
   const onKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLElement>) => {
+    (e) => {
       const { code, key, metaKey, shiftKey, ctrlKey } = e;
       const isCtrl = ctrlKey || metaKey;
       if (isCtrl && !shiftKey) {
         // copy, cut, paste
-        if (onCtrlKey[key]) onCtrlKey[key]();
+        if (onCtrlKey[key] && !(isEdited && key !== 'v')) onCtrlKey[key]();
         return;
       }
-      if (isEdited && key === 'Escape') setState({ ...state, isEdited: false });
-      else if (
-        !isEdited &&
-        (key === 'Delete' || key === 'Backspace') &&
-        !readOnly
-      ) {
+      if (isEdited && key === 'Escape') updateState({ isEdited: false });
+      else if (!isEdited && (key === 'Delete' || key === 'Backspace') && !readOnly) {
         const startX = Math.min(fromX!, toX! ?? fromX);
         const startY = Math.min(fromY!, toY! ?? fromY);
         const endX = Math.max(fromX!, toX! ?? fromX);
@@ -384,8 +442,8 @@ function GridBody({ width, scrollLeft, scrollTop, onScroll }: GridBodyProps) {
         const nextData = [...data];
         for (let j = startY; j <= endY; j++) {
           for (let i = startX; i <= endX; i++) {
-            const { type, unmodifiable } = columnPropsList[i] || {};
-            if (type || unmodifiable) continue;
+            const { type = 'label', unmodifiable } = columnPropsList[i] || {};
+            if (type !== 'label' || unmodifiable) continue;
             nextData[j][columnKeyList[i]] = {
               ...nextData[j][columnKeyList[i]],
               changeValue: '',
@@ -406,13 +464,15 @@ function GridBody({ width, scrollLeft, scrollTop, onScroll }: GridBodyProps) {
           if (shiftKey) return;
           e.preventDefault();
           e.stopPropagation();
+          // Trigger onBlur-like event here
+          const changeValue = (editorRef && editorRef.current && editorRef.current.textContent) || '';
+          onBlur({ changeValue, fromX, fromY });
           moveUpDown[key]();
-          setState({
-            ...state,
+          updateState({
             isEdited: false,
           });
           const gridRef = findDOMNode(gridBodyRef.current);
-          gridRef.focus();
+          if (gridRef) (gridRef as HTMLElement)?.focus();
         }
       } else if (move[key]) {
         e.preventDefault();
@@ -426,8 +486,9 @@ function GridBody({ width, scrollLeft, scrollTop, onScroll }: GridBodyProps) {
         }
       } else if (code.includes('Key')) {
         // input
-        setState({
-          ...state,
+        const { type = 'label', unmodifiable } = columnPropsList[fromX] || {};
+        if (type !== 'label' || unmodifiable) return;
+        updateState({
           isSelected: false,
           isEdited: true,
           lockedMove: false,
@@ -453,78 +514,45 @@ function GridBody({ width, scrollLeft, scrollTop, onScroll }: GridBodyProps) {
       toY,
     ],
   );
-
-  const Cell = ({
-    content,
-    options = [],
-    type = 'label',
-    dropdownOptions = [],
-  }) => {
-    const onDropdownChange = () => {};
-    const onChecked = () => {};
-    // const radio = () =>
-    //   options.map((option) => (
-    //     <Checkbox
-    //       type="radio"
-    //       key={option.label}
-    //       label={option.label}
-    //       checked={option.key === content}
-    //       onChange={onChecked}
-    //     />
-    //   ));
-    const config = () => (
-      <table className="w-full h-full">
-        <tbody>
-          {(content || []).map(({ key, value }) => (
-            <tr key={key}>
-              <td className="p-1 border-b border-r border-gray-300">{key}</td>
-              <td className="p-1 border-b border-gray-300">{value}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    );
-    const dropdown = () => (
-      <div>
-        {/* <Dropdown options={dropdownOptions} onChange={onDropdownChange} /> */}
-      </div>
-    );
-
-    const label = () =>
-      // <div className="p-1 break-words whitespace-pre-wrap">{content || ''}</div>
-      content || '';
-    const labelList = () => (
-      <div className="flex flex-wrap">
-        {(content || []).map((label: string, index: number) => (
-          <span
-            className="bg-blue-500 text-white rounded-full px-2 mr-1"
-            key={index}
-          >
-            {label}
-          </span>
-        ))}
-      </div>
-    );
-    const list = () => (
-      <div className="h-full last:border-none">
-        {(content || []).map((label: string, index: number) => (
-          <div className="border-b border-gray-300 p-1 h-24px" key={index}>
-            {label}
-          </div>
-        ))}
-      </div>
-    );
-
-    return (
-      {
-        config,
-        dropdown,
-        label,
-        labelList,
-        list,
-        // radio,
-      }[type]() || ''
-    );
+  const onClickDropdown = (optionValue: string) => {
+    const isCustomOption = optionValue === 'other';
+    if (isCustomOption) {
+      updateState({
+        dropdownOptions: [],
+        dropdownValue: undefined,
+        dropdownLeft: undefined,
+        dropdownTop: undefined,
+        dropdownWidth: undefined,
+        isSelected: true,
+        isEdited: true,
+        isDropdownOverflow: false,
+        lockedMove: true,
+      })
+    } else {
+      const nextData = [...data];
+      const { index } = filteredData[fromY!] || {};
+      const headerKey = columnKeyList[fromX!];
+      const { value } = nextData[index][headerKey];
+      const isModified = value === optionValue;
+      nextData[index][headerKey] = {
+        ...nextData[index][headerKey],
+        changeValue: isModified ? undefined : optionValue,
+        state: isModified ? '' : 'MODIFY',
+      };
+      onChange && onChange(nextData);
+      updateState({
+        dropdownOptions: [],
+        dropdownValue: undefined,
+        dropdownLeft: undefined,
+        dropdownTop: undefined,
+        dropdownWidth: undefined,
+        fromX: undefined,
+        fromY: undefined,
+        isSelected: false,
+        isEdited: false,
+        isDropdownOverflow: false,
+      })
+    }
   };
 
   const cellRenderer = ({
@@ -540,51 +568,125 @@ function GridBody({ width, scrollLeft, scrollTop, onScroll }: GridBodyProps) {
     style: object;
   }) => {
     const headerKey = columnKeyList[columnIndex];
-    const { value, changeValue, color, background, state } =
-      (filterData[rowIndex] || {})[headerKey] || {};
+    const { background, changeValue, color, isDisabled, state, value } =
+      (filteredData[rowIndex] || {})[headerKey] || {};
     const header = columnPropsList[columnIndex] || {};
-    const {
-      width = 100,
-      type,
-      options,
-      dropdownOptions,
-      key,
-      unmodifiable,
-    } = header;
-    const onMouseDown = (e: React.MouseEvent<HTMLElement>) => {
-      // right click
-      const isRightClick = e.button === 2;
-      if (
-        (isEdited || isRightClick) &&
-        (fromX !== columnIndex || fromY !== rowIndex)
-      ) {
-        setState({
-          ...state,
-          lockedMove,
-          isSelected,
-          fromX: isRightClick ? undefined : columnIndex,
-          fromY: isRightClick ? undefined : rowIndex,
-          toX: undefined,
-          toY: undefined,
-          isEdited: false,
-        });
-        return;
-      }
-      setState({
-        ...state,
-        lockedMove,
-        fromX: columnIndex,
-        fromY: rowIndex,
-        toX: undefined,
-        toY: undefined,
-        isSelected: true,
-        isEdited: isEdited && fromX === columnIndex && fromY === rowIndex,
-      });
+    const { type = 'label', dropdownOptions = [], unmodifiable } = header;
+    const gridCellWidth = style['width'];
+    const gridCellHeight = (filteredData[rowIndex]?.multiRow ?? 1) * cellHeight;
+    const labelStateClassName = labelStateClassNameMap[String(state)] || '';
+    const Select = () => {
+      const onChecked = (changeValue?: boolean) => {
+        const nextData = [...data];
+        const { index } = filteredData[rowIndex] || {};
+        const { value } = nextData[index][headerKey];
+        nextData[index][headerKey] = {
+          ...nextData[index][headerKey],
+          changeValue,
+          state: changeValue === value ? '' : 'MODIFY',
+        };
+
+        onChange && onChange(nextData);
+      };
+      return (
+        <div className="w-full h-full flex justify-center items-center">
+          <Checkbox disabled={isDisabled} onChange={onChecked} checked={changeValue} />
+        </div>
+      );
     };
+    const Label = () => {
+      return (
+        <span
+          className={`h-full whitespace-nowrap overflow-ellipsis block overflow-hidden pointer-events-none p-1 ${labelStateClassName}`}
+        >
+          {changeValue ?? value}
+        </span>
+      );
+    };
+    const Multiline = () => {
+      const valueList = (value || '').split(',');
+      return valueList.map((value: string, index: number) => (
+        <span
+          key={index}
+          className="border-b border-gray-300 whitespace-nowrap overflow-ellipsis block overflow-hidden pointer-events-none px-1 pt-1"
+          style={{ height: cellHeight }}
+        >
+          {value}
+        </span>
+      ));
+    };
+    const MemoDropdown = () => (
+      <Dropdown
+        className={labelStateClassName}
+        columnIndex={columnIndex}
+        fromX={fromX}
+        fromY={fromY}
+        gridBodyRef={gridBodyRef}
+        gridCellHeight={gridCellHeight}
+        gridCellWidth={gridCellWidth}
+        height={height}
+        options={dropdownOptions}
+        rowIndex={rowIndex}
+        scrollLeft={scrollLeft}
+        scrollTop={scrollTop}
+        updateState={updateState}
+        value={changeValue ?? value}
+      />
+    );
+    const renderMap = {
+      checkbox: Select,
+      dropdown: MemoDropdown,
+      label: Label,
+      multiline: Multiline,
+    };
+    const Renderer = memo(renderMap[type]);
+    const onMouseDown =
+      type === 'checkbox'
+        ? null
+        : (e: React.MouseEvent) => {
+            // right click
+            const isRightClick = e.button === 2;
+            if (fromX !== columnIndex || fromY !== rowIndex) {
+              if (isEdited) {
+                const changeValue = (editorRef && editorRef.current && editorRef.current.textContent) || '';
+                onBlur({ changeValue, fromX, fromY });
+                updateState({
+                  lockedMove,
+                  isSelected,
+                  fromX: isRightClick ? undefined : columnIndex,
+                  fromY: isRightClick ? undefined : rowIndex,
+                  toX: undefined,
+                  toY: undefined,
+                  isEdited: false,
+                  dropdownOptions: [],
+                  dropdownValue: undefined,
+                  dropdownLeft: undefined,
+                  dropdownTop: undefined,
+                  dropdownWidth: undefined,
+                  isDropdownOverflow: false,
+                });
+                return;
+              } else if (isRightClick) return;
+            }
+            updateState({
+              lockedMove,
+              fromX: columnIndex,
+              fromY: rowIndex,
+              toX: undefined,
+              toY: undefined,
+              isSelected: true,
+              isEdited: isEdited && fromX === columnIndex && fromY === rowIndex,
+              dropdownOptions: [],
+              dropdownValue: undefined,
+              dropdownLeft: undefined,
+              dropdownTop: undefined,
+              dropdownWidth: undefined,
+              isDropdownOverflow: false,
+            });
+          };
     const onMouseUp = () => {
       if (isEdited || !isSelected) return;
-      setState({
-        ...state,
+      updateState({
         lockedMove,
         isEdited,
         fromX,
@@ -596,8 +698,7 @@ function GridBody({ width, scrollLeft, scrollTop, onScroll }: GridBodyProps) {
     };
     const onMouseEnter = () => {
       if (isEdited || !isSelected) return;
-      setState({
-        ...state,
+      updateState({
         lockedMove,
         isEdited,
         fromX,
@@ -607,15 +708,11 @@ function GridBody({ width, scrollLeft, scrollTop, onScroll }: GridBodyProps) {
         toY: rowIndex,
       });
     };
-    const onDoubleClick = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
+    const onDoubleClick = (e: { preventDefault: () => void; stopPropagation: () => void }): React.MouseEventHandler => {
       e.preventDefault();
       e.stopPropagation();
-      if (type || unmodifiable || isEdited) return;
-      const target = e.target;
-      if (!target) return;
-
-      setState({
-        ...state,
+      if (type !== 'label' || unmodifiable || isEdited) return null;
+      updateState({
         fromX,
         fromY,
         lockedMove: true,
@@ -624,26 +721,7 @@ function GridBody({ width, scrollLeft, scrollTop, onScroll }: GridBodyProps) {
         isSelected: false,
         isEdited: true,
       });
-    };
-    const onBlurEditor = (changeValue?: string) => {
-      const rowData = filterData[rowIndex];
-      const { index } = rowData || {};
-      const nextData = [...data];
-      nextData[index] = {
-        ...nextData[index],
-        [key!]: {
-          ...rowData[key!],
-          changeValue,
-          state:
-            (rowData[key!]?.value || '') !== changeValue
-              ? changeValue === ''
-                ? 'DELETE'
-                : 'MODIFY'
-              : '',
-        },
-      };
-
-      if (onChange) onChange(nextData);
+      return null;
     };
     const isBeingSelected =
       columnIndex >= Math.min(fromX!, toX!) &&
@@ -651,57 +729,62 @@ function GridBody({ width, scrollLeft, scrollTop, onScroll }: GridBodyProps) {
       rowIndex >= Math.min(fromY!, toY!) &&
       rowIndex <= Math.max(fromY!, toY!);
     const isActive = `${fromX}-${fromY}` === `${columnIndex}-${rowIndex}`;
+    const isContentEditable = isActive && isEdited;
+
     return (
       <div
         role="presentation"
         key={keyIndex}
         className={`${defaultBodyClassName}
-        ${selectedClassName[+isBeingSelected!] || ''} ${
-          activeClassName[+isActive]
-        }
-           ${cellStateStyleMap[state] || ''} ${
-          unmodifiableClassName[+unmodifiable!]
+        ${selectedClassName[+isBeingSelected!] || ''} ${activeClassName[+isActive]} ${
+          editableClassName[+isContentEditable]
         }`}
         style={{
           ...style,
           color,
           background,
+          height: gridCellHeight,
+          minHeight: gridCellHeight,
         }}
         onMouseDown={onMouseDown}
         onMouseUp={onMouseUp}
         onMouseEnter={onMouseEnter}
         onDoubleClick={onDoubleClick}
       >
-        <span className="whitespace-nowrap overflow-ellipsis block overflow-hidden">
-          {changeValue ?? value}
-        </span>
-        {state === 'DELETE' && (
-          <span className="whitespace-nowrap overflow-ellipsis block overflow-hidden text-red-900 line-through">
-            {value}
-          </span>
+        {isContentEditable ? (
+          <div
+            ref={editorRef}
+            contentEditable={isContentEditable}
+            suppressContentEditableWarning
+            spellCheck={false}
+            className="bg-blue-100 min-w-full w-auto h-auto p-1 outline-none"
+            onPaste={onPastePlainText}
+          >
+            {changeValue ?? value}
+          </div>
+        ) : (
+          <Renderer />
         )}
-        <Editor
-          open={isActive && isEdited && !unmodifiable}
-          value={changeValue ?? value}
-          onBlur={onBlurEditor}
-        />
       </div>
     );
   };
-  // useEffect(() => {
-  //   const gridRef = findDOMNode(gridBodyRef.current);
-  //   const ps = new PerfectScrollbar(gridRef, perfectScrollbarConfig);
-  //   return () => ps.destroy();
-  // }, []);
   useEffect(() => {
     const gridRef = findDOMNode(gridBodyRef.current);
-    if (!gridRef) return;
+    const ps = new PerfectScrollbar(gridRef as Element, perfectScrollbarConfig);
+    return () => ps.destroy();
+  }, []);
+  useEffect(() => {
+    const gridRef = findDOMNode(gridBodyRef.current);
+    if (!gridRef) return null;
     gridRef.addEventListener('keydown', onKeyDown);
     return () => gridRef.removeEventListener('keydown', onKeyDown);
   }, [onKeyDown]);
+  useLayoutEffect(() => {
+    if (isEdited && editorRef && editorRef.current) editorRef.current.focus();
+  }, [isEdited]);
 
   return (
-    <>
+    <div className="relative">
       <Grid
         tabIndex={1}
         ref={gridBodyRef}
@@ -709,7 +792,7 @@ function GridBody({ width, scrollLeft, scrollTop, onScroll }: GridBodyProps) {
         cellRenderer={cellRenderer}
         width={width}
         height={height}
-        rowHeight={cellHeight}
+        rowHeight={getRowHeight}
         columnWidth={getColumnWidth}
         rowCount={rowCount || 1}
         overscanColumnCount={overscanColumnCount}
@@ -721,7 +804,27 @@ function GridBody({ width, scrollLeft, scrollTop, onScroll }: GridBodyProps) {
         scrollToRow={isEdited ? undefined : fromY}
       />
       <textarea className="hidden" ref={clipboardRef}></textarea>
-    </>
+      <div
+        className={`absolute h-auto bg-white dark:bg-black border border-red-700 last:border-0 ${
+          dropdownOverflowClassName[+isDropdownOverflow]
+        }`}
+        style={{
+          width: (dropdownWidth || 0) + 'px',
+          left: (dropdownLeft || 0) - scrollLeft + 'px',
+          top: (dropdownTop || 0) - scrollTop + 'px',
+        }}
+      >
+        {dropdownOptions?.map((option) => {
+          const isSelected = option.value === dropdownValue;
+          return (
+            <div role="presentation" key={option.value} className={`${defaultDropdownClassName} ${activeDropdownClassNameMap[String(isSelected)]}`} onClick={() => onClickDropdown(option.value)}>
+              {isSelected && <FcCheckmark size={16} className="mr-1" />}
+              <span className="whitespace-nowrap overflow-ellipsis overflow-hidden">{option.label}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 

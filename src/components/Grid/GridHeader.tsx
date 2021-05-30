@@ -1,13 +1,11 @@
-import React, { useContext } from 'react';
+import React, { useContext, memo } from 'react';
 import { Grid } from 'react-virtualized';
-import {
-  FcAlphabeticalSortingAz,
-  FcAlphabeticalSortingZa,
-} from 'react-icons/fc';
+import { FcAlphabeticalSortingAz, FcAlphabeticalSortingZa } from 'react-icons/fc';
+import Checkbox from '../Checkbox';
 import GridContext from './GridContext';
 import FilterInput from './FilterInput';
 import { cellHeight, defaultHeaderClassName } from './config';
-import { CellRendererProps } from './type';
+import { CellRendererProps } from './index.d';
 
 const defaultGridHeaderClassName =
   'border-b border-gray-300 dark:border-gray-400 outline-none !overflow-hidden select-none';
@@ -21,12 +19,15 @@ function GridHeader({ width, scrollLeft }: GridHeaderProps) {
   const {
     columnCount,
     columnPropsList,
+    data,
     filterable,
     filterList,
+    filteredData,
     getColumnWidth,
     headerList,
     headerRowCount,
     isSortAsc,
+    onChange,
     onChangeFilterList,
     setIsSortAsc,
     setSortKey,
@@ -35,12 +36,7 @@ function GridHeader({ width, scrollLeft }: GridHeaderProps) {
   } = useContext(GridContext);
 
   const height = (headerRowCount + +filterable) * cellHeight;
-  const cellRenderer = ({
-    columnIndex,
-    rowIndex,
-    key: cellRendererKey,
-    style,
-  }: CellRendererProps) => {
+  const cellRenderer = ({ columnIndex, rowIndex, key: cellRendererKey, style }: CellRendererProps) => {
     if (filterable && rowIndex === headerRowCount) {
       const { width, unfilterable } = columnPropsList[columnIndex];
       return (
@@ -70,6 +66,7 @@ function GridHeader({ width, scrollLeft }: GridHeaderProps) {
       key,
       row,
       top,
+      type = 'label',
       textAlign,
       unsortable,
       width = 100,
@@ -82,7 +79,32 @@ function GridHeader({ width, scrollLeft }: GridHeaderProps) {
       setIsSortAsc(!isSortAsc);
       if (sortKey !== key) setSortKey(key!);
     };
-
+    const Select = () => {
+      const isUnchecked = !!filteredData.find((item) => !item[key!]?.changeValue);
+      const onChecked = (changeValue?: boolean) => {
+        const nextData = [...data];
+        filteredData.forEach((item) => {
+          const { index } = item;
+          nextData[index][key!] = {
+            ...nextData[index][key!],
+            changeValue,
+          };
+        });
+        onChange && onChange(nextData);
+      };
+      return <Checkbox onChange={onChecked} checked={!isUnchecked} />;
+    };
+    const Label = () => {
+      return <div>{label}</div>;
+    };
+    const renderMap = {
+      checkbox: Select,
+      dropdown: Label,
+      label: Label,
+      number: Label,
+      multiline: Label,
+    };
+    const Renderer = memo(renderMap[type]);
     return (
       <div
         key={cellRendererKey}
@@ -101,7 +123,7 @@ function GridHeader({ width, scrollLeft }: GridHeaderProps) {
         }}
         onClick={onClick}
       >
-        <div>{label}</div>
+        <Renderer />
         {isSorted &&
           (isSortAsc ? (
             <FcAlphabeticalSortingAz size={20} className="mx-1" />

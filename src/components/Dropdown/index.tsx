@@ -1,261 +1,180 @@
-import React, { useMemo, useState, useEffect, useRef } from 'react';
+import React from 'react';
 import PropTypes from 'prop-types';
-import { IoMdArrowDropdown } from 'react-icons/io';
-import {
-  AutoSizer,
-  CellMeasurer,
-  CellMeasurerCache,
-  List,
-} from 'react-virtualized';
-import { isElementAtTop } from '../../utils/helpers';
-import Input from '../Input';
+import { IoMdArrowDropdown, IoMdClose } from 'react-icons/io';
+import ReactSelect from 'react-select';
 
-const defaultDropdownClassName =
-  'shadow border border-gray-300 bg-white dark:bg-black outline-none';
-const iconClassName =
-  'absolute top-0 right-0 p-1 pointer-events-none transform duration-100 flex items-center';
-const defaultDropdownOptionClassName =
-  'bg-white dark:bg-black text-black dark:text-white p-1 text-xs border-b border-gray-100 flex items-center hover:bg-gray-100 dark:hover:bg-gray-700';
-const defaultOptionHeight = 26;
-const cache = new CellMeasurerCache({
-  fixedWidth: true,
-  fixedHeight: false,
-});
+const controlClassName = 'flex bg-white items-center justify-between border border-gray-300 relative outline-none';
+const optionClassName = 'p-1 hover:bg-gray-100';
+const placeholderClassName =
+  'absolute left-0 top-0 w-full whitespace-nowrap my-2px pl-1 overflow-hidden overflow-ellipsis text-gray-400';
+const multiValueRemoveClassName = 'h-full rounded-sm flex items-center px-2px hover:bg-gray-300 cursor-pointer';
+const valueContainerClassName = 'relative flex flex-wrap px-1 w-full overflow-hidden';
+const openMenuClassNameMap = {
+  true: 'shadow-inner !bg-white',
+  false: 'shadow',
+};
+const hasValueClassNameMap = {
+  true: 'bg-white',
+  false: 'bg-gray-100',
+};
+
+export type DropdownOptionsProps = {
+  value?: string;
+  label?: string;
+  disabled?: boolean;
+  isRemoved?: boolean;
+};
 
 type DropdownProps = {
-  containerClassName: string;
-  dropdownClassName: string;
-  listProps: object;
-  maxHeight: number;
-  onChange: Function;
-  options: Array<{ key: string; label: string; disabled: boolean }>;
-  placeholder: string;
-  value?: string;
-};
-
-type RowRendererProps = {
-  index: number;
-  key: string;
-  parent: object;
-  style: object;
-};
-
-type DropdownOptionProps = {
-  label?: string;
-  key?: string;
+  className?: string;
   disabled?: boolean;
+  isMulti?: boolean;
+  onChange?: (value: string | DropdownOptionsProps[] | null) => void;
+  options: { label?: string; value?: string; disabled?: boolean }[];
+  placeholder?: string;
+  value?: string | string[] | null;
 };
 
-function Dropdown({
-  containerClassName,
-  dropdownClassName,
-  listProps,
-  maxHeight,
-  onChange,
-  options,
-  placeholder,
-  value,
-}: DropdownProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLDivElement>(null);
-  const [scrollToIndex, setScrollToIndex] = useState();
-  const [isAtTop, setIsAtTop] = useState(true);
-  const [searchInputValue, setSearchInputValue]: [string, Function] = useState(
-    value || '',
-  );
-  const [isOpenDropdown, setIsOpenDropdown] = useState(false);
-  const filterOptions = useMemo(() => {
-    const filterOptions = options.filter((option) =>
-      (option.label || '')
-        .toLowerCase()
-        .includes((searchInputValue || '').toLowerCase()),
-    );
-    cache.clearAll();
-    return filterOptions;
-  }, [options, searchInputValue]);
-  const { height, rowCount } = useMemo(() => {
-    const rowCount = filterOptions.length;
-    const height = (rowCount || 1) * defaultOptionHeight;
-    cache.clearAll();
-    return { height: Math.min(height, maxHeight), rowCount };
-  }, [filterOptions, maxHeight]);
-  const onFocus = () => setIsOpenDropdown(true);
-  const onBlur = () => setIsOpenDropdown(false);
+type RenderProps = {
+  children?: React.ReactChildren;
+  cx?: Function;
+  data?: DropdownOptionsProps;
+  getStyles?: Function;
+  hasValue?: boolean;
+  innerProps?: object;
+  innerRef?: object;
+  menuIsOpen?: boolean;
+  selectProps?: {
+    onChange?: (value?: string | DropdownOptionsProps[] | null) => void;
+    isMulti?: boolean;
+    value: string | DropdownOptionsProps[];
+  };
+  value?: string | string[] | null;
+};
 
-  const onKeyUp = (e: React.KeyboardEvent<HTMLElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setScrollToIndex(
-      scrollToIndex > 0 ? scrollToIndex - 1 : filterOptions.length - 1,
-    );
+const Control = ({ children, hasValue, innerProps, innerRef, menuIsOpen }: RenderProps) => (
+  <div
+    className={`${controlClassName} ${openMenuClassNameMap[String(menuIsOpen)]} ${
+      hasValueClassNameMap[String(hasValue)]
+    }`}
+    {...innerProps}
+    {...innerRef}
+  >
+    {children}
+  </div>
+);
+const IndicatorsContainer = () => <IoMdArrowDropdown className="mx-1" />;
+const MenuList = ({ children }: RenderProps) => <div>{children}</div>;
+const MultiValueLabel = ({ children }: RenderProps) => <div className="px-1">{children}</div>;
+const MultiValueRemove = ({ data, selectProps }: RenderProps) => {
+  const { onChange, value } = selectProps || {};
+  const onClick = () => {
+    if (!onChange) return;
+    const selectedValueList = (value as DropdownOptionsProps[]).map(({ value }: DropdownOptionsProps) => ({
+      value,
+      isRemoved: value === data?.value,
+    })) as DropdownOptionsProps[];
+    onChange(selectedValueList);
   };
-  const onKeyDown = (e: React.KeyboardEvent<HTMLElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setScrollToIndex(
-      scrollToIndex < filterOptions.length - 1 ? scrollToIndex + 1 : 0,
-    );
-  };
-  const onKeyEnter = () => {
-    if (scrollToIndex === -1 || typeof scrollToIndex !== 'number') return;
-    const { key, label } = filterOptions[scrollToIndex] || {};
-    if (key === undefined || key === null) return;
-    onChange(key);
-    setSearchInputValue(label);
-    onBlur();
-  };
-  const onInputKeyDown = (e: React.KeyboardEvent<HTMLElement>) => {
-    const { code } = e;
-    const onKeyDownMap = {
-      ArrowUp: onKeyUp,
-      ArrowDown: onKeyDown,
-      Enter: onKeyEnter,
-    };
-    if (onKeyDownMap[code]) onKeyDownMap[code](e);
-  };
-  const rowRenderer = ({
-    index,
-    key: renderKey,
-    parent,
-    style,
-  }: RowRendererProps) => {
-    const { label, key, disabled }: DropdownOptionProps =
-      filterOptions[index] || {};
-    const onClick = () => {
-      onChange(key);
-      setSearchInputValue(label);
-      onBlur();
-      setScrollToIndex(index);
-    };
-    if (!rowCount)
-      return (
-        <div
-          key={renderKey}
-          style={style}
-          className="text-xs p-1 text-gray-300 text-center"
-        >
-          No Data
-        </div>
-      );
-    return (
-      <CellMeasurer
-        cache={cache}
-        columnIndex={0}
-        key={renderKey}
-        parent={parent}
-        rowIndex={index}
-      >
-        <div
-          className={`${defaultDropdownOptionClassName} ${
-            disabled ? 'disabled:opacity-50' : ''
-          } ${scrollToIndex === index ? '!bg-gray-300 !dark:bg-gray-700' : ''}`}
-          onClick={onClick}
-          onKeyDown={() => {}}
-          role="listbox"
-          style={style}
-          tabIndex={0}
-        >
-          <span>{label}</span>
-        </div>
-      </CellMeasurer>
-    );
-  };
-  const outsideClickHandler = (e: React.MouseEvent<HTMLElement, MouseEvent>) => {
-    if (
-      containerRef &&
-      containerRef.current &&
-      !containerRef.current.contains(e.target)
-    )
-      onBlur();
-  };
-  useEffect(() => {
-    if (isOpenDropdown) {
-      setSearchInputValue('');
-      const isAtTop = isElementAtTop(inputRef?.current);
-      setIsAtTop(isAtTop);
-      document.addEventListener('mousedown', outsideClickHandler);
-      return () =>
-        document.removeEventListener('mousedown', outsideClickHandler);
-    } else {
-      setSearchInputValue(value);
-      if (inputRef && inputRef.current) inputRef.current.blur();
-      return;
-    }
-  }, [isOpenDropdown]);
   return (
-    <div
-      ref={containerRef}
-      className={`relative w-full z-1 ${containerClassName}`}
-    >
-      <Input
-        ref={inputRef}
-        className="pr-5"
-        onChange={setSearchInputValue}
-        onMouseDown={onFocus}
-        onKeyDown={onInputKeyDown}
-        placeholder={placeholder}
-        value={searchInputValue || ''}
-      />
-      <div
-        className={`${iconClassName} ${
-          isOpenDropdown ? 'rotate-180' : 'rotate-0'
-        }`}
-      >
-        <IoMdArrowDropdown />
-      </div>
-      {isOpenDropdown && (
-        <div
-          className={`absolute left-0 w-full h-full ${
-            isOpenDropdown ? '' : 'hidden'
-          } ${isAtTop ? 'top-full' : 'bottom-full'}`}
-        >
-          <AutoSizer disableHeight>
-            {({ width }: { width: number }) => (
-              <List
-                deferredMeasurementCache={cache}
-                className={`${defaultDropdownClassName} ${dropdownClassName}`}
-                height={maxHeight}
-                rowCount={rowCount || 1}
-                rowHeight={cache.rowHeight}
-                rowRenderer={rowRenderer}
-                scrollToIndex={scrollToIndex}
-                width={width}
-                {...listProps}
-              />
-            )}
-          </AutoSizer>
-        </div>
-      )}
+    <div role="presentation" onClick={onClick} className={multiValueRemoveClassName}>
+      <IoMdClose size={10} />
     </div>
+  );
+};
+const Option = ({ children, innerProps, innerRef }: RenderProps) => (
+  <div role="presentation" {...innerProps} {...innerRef} className={optionClassName}>
+    {children}
+  </div>
+);
+const Placeholder = ({ children }: RenderProps) => <div className={placeholderClassName}>{children}</div>;
+const ValueContainer = ({ children }: RenderProps) => <div className={valueContainerClassName}>{children}</div>;
+function Dropdown({ className, disabled, isMulti, onChange, options, placeholder, value }: DropdownProps) {
+  const defaultValue = isMulti
+    ? options.filter((option) => (value || []).includes(option.value!))
+    : options.find((option) => option.value === value) || null;
+  const onChangeValue = (selectedValue?: DropdownOptionsProps | DropdownOptionsProps[] | null) => {
+    if (!onChange) return;
+    if (isMulti) {
+      const valueList = (selectedValue as DropdownOptionsProps[]).reduce(
+        (acc, { isRemoved, value }: DropdownOptionsProps) => (isRemoved ? acc : acc.concat([value])),
+        [],
+      );
+      onChange(valueList);
+    } else onChange((selectedValue as DropdownOptionsProps)?.value);
+  };
+
+  return (
+    <>
+      <ReactSelect
+        isDisabled={disabled}
+        isMulti={isMulti}
+        options={options}
+        value={defaultValue}
+        menuPlacement="auto"
+        onChange={onChangeValue}
+        className={`text-xs flex-1 ${className}`}
+        components={{
+          Control,
+          IndicatorsContainer,
+          MenuList,
+          MultiValueLabel,
+          MultiValueRemove,
+          Option,
+          Placeholder,
+          ValueContainer,
+        }}
+        styles={{
+          input: (style: object) => ({
+            ...style,
+            margin: 0,
+          }),
+          menu: (style: object) => ({
+            ...style,
+            marginTop: 0,
+            marginBottom: 0,
+            borderRadius: 0,
+          }),
+          multiValue: (style: object) => ({
+            ...style,
+            marginLeft: 0,
+            marginRight: '2px',
+          }),
+          singleValue: (style: object) => ({
+            ...style,
+            margin: 0,
+          }),
+        }}
+        placeholder={placeholder}
+      />
+    </>
   );
 }
 
 Dropdown.propTypes = {
-  containerClassName: PropTypes.string,
-  dropdownClassName: PropTypes.string,
-  listProps: PropTypes.object,
-  maxHeight: PropTypes.number,
+  className: PropTypes.string,
+  disabled: PropTypes.bool,
+  isMulti: PropTypes.bool,
   onChange: PropTypes.func,
   options: PropTypes.arrayOf(
     PropTypes.shape({
-      key: PropTypes.string.isRequired,
-      label: PropTypes.string.isRequired,
+      value: PropTypes.string,
+      label: PropTypes.string,
       disabled: PropTypes.bool,
     }),
   ),
   placeholder: PropTypes.string,
-  value: PropTypes.string,
+  value: PropTypes.oneOfType([PropTypes.string, PropTypes.arrayOf(PropTypes.string)]),
 };
 
 Dropdown.defaultProps = {
-  containerClassName: '',
-  dropdownClassName: '',
-  listProps: {},
-  maxHeight: 150,
+  className: '',
+  disable: false,
+  isMulti: false,
   onChange: () => {},
   options: [],
   placeholder: '',
-  value: '',
+  value: null,
 };
 
 export default Dropdown;

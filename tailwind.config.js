@@ -3,20 +3,22 @@ const plugin = require('tailwindcss/plugin');
 const pluginImportant = require('tailwindcss-important');
 const pluginPseudo = require('tailwindcss-pseudo-elements');
 const { omit, flatMap } = require('lodash');
-const flattenColorPalette = require('tailwindcss/lib/util/flattenColorPalette')
-  .default;
+const flattenColorPalette = require('tailwindcss/lib/util/flattenColorPalette').default;
 
 module.exports = {
   purge: ['./public/**/*.html', './src/**/*.{js,jsx,ts,tsx}'],
   darkMode: 'class',
   theme: {
-    colors: {
-      ...colors,
-    },
     extend: {
       cursor: {
         cell: 'cell',
         'col-resize': 'col-resize',
+      },
+      height: {
+        '1px': '1px',
+        '8px': '8px',
+        '10px': '10px',
+        '24px': '24px',
       },
       margin: {
         '1px': '1px',
@@ -47,6 +49,7 @@ module.exports = {
         '1/3': '33.333333%',
         '1/2': '50%',
         '3/4': '75%',
+        '500px': '500px',
       },
       minWidth: {
         '1/4': '25%',
@@ -71,7 +74,9 @@ module.exports = {
         '1px': '1px',
         '2px': '2px',
         '4px': '4px',
+        '5px': '5px',
         '6px': '6px',
+        '24px': '24px',
         '100px': '100px',
         '150px': '150px',
         '200px': '200px',
@@ -92,20 +97,22 @@ module.exports = {
   },
   variants: {
     extend: {
-      backgroundColor: ['active', 'disabled', 'important', 'before', 'after'],
-      borderRadius: ['first', 'last', 'not', 'child', 'important'],
-      borderWidth: ['child', 'not-first', 'not-last', 'before', 'after'],
+      backgroundColor: ['active', 'after', 'before', 'disabled', 'important'],
+      borderRadius: ['child', 'first', 'important', 'last', 'not'],
+      borderWidth: ['after', 'before', 'child', 'last', 'not-first', 'not-last'],
       borderColor: ['important'],
       boxShadow: ['active'],
       cursor: ['disabled'],
       flex: ['child'],
+      height: ['important'],
       margin: ['child', 'first', 'not-first', 'last', 'important'],
       overflow: ['important'],
-      opacity: ['disabled', 'dark'],
-      padding: ['child', 'first', 'last', 'important'],
+      opacity: ['dark', 'disabled'],
+      fontSize: ['important'],
+      padding: ['child', 'first', 'important', 'last'],
       pointerEvents: ['disabled'],
       textColor: ['important'],
-      fontSize: ['important'],
+      width: ['important'],
     },
   },
   plugins: [
@@ -132,16 +139,12 @@ module.exports = {
       });
       addVariant('not-first', ({ modifySelectors, separator }) => {
         modifySelectors(({ className }) => {
-          return `.${e(
-            `not-first${separator}${className}`,
-          )} > :not(:first-child)`;
+          return `.${e(`not-first${separator}${className}`)} > :not(:first-child)`;
         });
       });
       addVariant('not-last', ({ modifySelectors, separator }) => {
         modifySelectors(({ className }) => {
-          return `.${e(
-            `not-last${separator}${className}`,
-          )} > :not(:last-child)`;
+          return `.${e(`not-last${separator}${className}`)} > :not(:last-child)`;
         });
       });
     },
