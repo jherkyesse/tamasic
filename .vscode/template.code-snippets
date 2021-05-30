@@ -1,23 +1,75 @@
 {
-  "Import React": {
-		"scope": "javascript,typescript,typescriptreact,javascriptreact",
-		"prefix": "ipreact",
-    "body": ["import React from 'react';"],
-    "description": "import React from 'react';"
+  "Import React dependencies": {
+    "prefix": "ipreact",
+    "body": "import React, { useState, useEffect, useRef } from 'react';"
   },
-  "Export default Function $1": {
-    "scope": "javascript,typescript,typescriptreact,javascriptreact",
-    "prefix": "fn",
+  "New functional programming React.Component": {
+    "prefix": "fnc",
     "body": [
-      "function $1() {",
-			"  return (",
-			"    $2",
+      "import React, { useState, useEffect, useRef } from 'react';",
+      "import PropTypes from 'prop-types';",
+      "import { Checkbox, Col, Dropdown, Flex, Input, Modal, Row, Title } from 'components';",
+      "",
+      "const $1 = ({ $2, $3 }) => {",
+      "  return (",
+      "    <>",
+      "    ",
       "  );",
       "}",
       "",
-			"export default $1;",
-			""
-    ],
-    "description": "import React from 'react';"
+      "$1.propTypes = {",
+      "  $2: PropTypes.string,",
+      "  $3: PropTypes.string,",
+      "}l",
+      "",
+      "$1.defaultProps = {",
+      "  $2: '',",
+      "  $3: '',",
+      "};",
+      "",
+      "export default $1;",
+      ""
+    ]
+  },
+  "Import Utils/helpers": {
+    "prefix": "iphelpers",
+    "body": "import { $1 } from 'utils/helpers';"
+  },
+  "Import \"prop-types\"": {
+    "prefix": "ipproptypes",
+    "body": "import PropTypes from 'prop-types';"
+  },
+  "Import \"useDispatch\", \"useSelector\" from \"react-redux\"": {
+    "prefix": "ipuseselector",
+    "body": "import { useDispatch, useSelector } from 'react-redux';"
+  },
+  "Declare \"useDispatch\", \"useSelector\"": {
+    "prefix": "useselector",
+    "body": [
+      "const $1 = useSelector((state) => state.$2.$1);",
+      "const dispatch = useDispatch();"
+    ]
+  },
+  "Import \"useRedux\"": {
+    "prefix": "ipuseredux",
+    "body": "import useRedux from 'hooks/useRedux';"
+  },
+  "Declare \"useRedux\"": {
+    "prefix": "useredux",
+    "body": "const { dispatch, select } = useRedux();"
+  },
+  "Declare \"select\"": {
+    "prefix": "select",
+    "body": "const $1 = select((state) => state.$2.$1);"
+  },
+  "Try Catch scope": {
+    "prefix": "try",
+    "body": [
+      "try {",
+      "  $1",
+      "} catch (error) {",
+      "  console.warn(error);",
+      "}"
+    ]
   }
 }

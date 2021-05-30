@@ -21,6 +21,7 @@ module.exports = {
       common: path.resolve(__dirname, 'src/common'),
       components: path.resolve(__dirname, 'src/components'),
       constants: path.resolve(__dirname, 'src/constants'),
+<<<<<<< HEAD
       context: path.resolve(__dirname, 'src/context'),
       hooks: path.resolve(__dirname, 'src/hooks'),
       i18n: path.resolve(__dirname, 'src/i18n'),
@@ -28,6 +29,13 @@ module.exports = {
       machines: path.resolve(__dirname, 'src/machines'),
       pages: path.resolve(__dirname, 'src/pages'),
       reducers: path.resolve(__dirname, 'src/reducers'),
+=======
+      i18n: path.resolve(__dirname, 'src/i18n'),
+      locales: path.resolve(__dirname, 'src/locales'),
+      pages: path.resolve(__dirname, 'src/pages'),
+      reducers: path.resolve(__dirname, 'src/reducers'),
+      sagas: path.resolve(__dirname, 'src/sagas'),
+>>>>>>> fb22fd7630b762f719213c6cd3d5bd2ebbe68787
       store: path.resolve(__dirname, 'src/store'),
       utils: path.resolve(__dirname, 'src/utils'),
     },
@@ -57,7 +65,10 @@ module.exports = {
     ],
   },
   devServer: {
+<<<<<<< HEAD
     port: '2021',
+=======
+>>>>>>> fb22fd7630b762f719213c6cd3d5bd2ebbe68787
     contentBase: 'dist/',
     historyApiFallback: true,
     watchContentBase: true,
